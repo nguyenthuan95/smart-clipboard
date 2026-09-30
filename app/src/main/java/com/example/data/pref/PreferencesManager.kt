@@ -23,7 +23,7 @@ class PreferencesManager(context: Context) {
     private val _darkModePreference = MutableStateFlow(prefs.getString(KEY_DARK_MODE, "dark") ?: "dark")
     val darkModePreference: StateFlow<String> = _darkModePreference.asStateFlow()
 
-    private val _queueModeEnabled = MutableStateFlow(prefs.getBoolean(KEY_QUEUE_MODE, false))
+    private val _queueModeEnabled = MutableStateFlow(prefs.getBoolean(KEY_QUEUE_MODE, true))
     val queueModeEnabled: StateFlow<Boolean> = _queueModeEnabled.asStateFlow()
 
     fun setQueueModeEnabled(enabled: Boolean) {

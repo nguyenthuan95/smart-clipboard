@@ -288,48 +288,36 @@ fun ImeClipboardPanel(
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
                                                     text = "⚡ FIFO QUEUE",
-                                                    color = if (queueModeEnabled) AmberPin else Color.White,
+                                                    color = AmberPin,
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 13.sp
                                                 )
-                                            }
-
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                // Toggle Button
-                                                FilledTonalButton(
-                                                    onClick = {
-                                                        scope.launch {
-                                                            queueRepo.setQueueModeEnabled(!queueModeEnabled)
-                                                        }
-                                                    },
-                                                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                                                        containerColor = if (queueModeEnabled) AmberPin else Slate800,
-                                                        contentColor = if (queueModeEnabled) Slate950 else Color.White
-                                                    ),
-                                                    modifier = Modifier.height(28.dp).testTag("ime_queue_toggle_btn"),
-                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                                                    shape = RoundedCornerShape(6.dp)
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Surface(
+                                                    color = AmberPin.copy(alpha = 0.2f),
+                                                    shape = RoundedCornerShape(4.dp)
                                                 ) {
                                                     Text(
-                                                        text = if (queueModeEnabled) "Queue ON" else "Queue OFF",
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Bold
+                                                        text = "BẬT",
+                                                        color = AmberPin,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 9.sp,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                                     )
                                                 }
+                                            }
 
-                                                if (queueItems.isNotEmpty()) {
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    TextButton(
-                                                        onClick = {
-                                                            scope.launch {
-                                                                queueRepo.clearQueue()
-                                                            }
-                                                        },
-                                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                                                        modifier = Modifier.height(28.dp).testTag("ime_clear_queue_btn")
-                                                    ) {
-                                                        Text("Clear Queue", color = RedDelete, fontSize = 11.sp)
-                                                    }
+                                            if (queueItems.isNotEmpty()) {
+                                                TextButton(
+                                                    onClick = {
+                                                        scope.launch {
+                                                            queueRepo.clearQueue()
+                                                        }
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                                    modifier = Modifier.height(28.dp).testTag("ime_clear_queue_btn")
+                                                ) {
+                                                    Text("Clear Queue", color = RedDelete, fontSize = 11.sp)
                                                 }
                                             }
                                         }

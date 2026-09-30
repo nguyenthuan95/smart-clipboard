@@ -43,10 +43,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.screens.AboutScreen
 import com.example.ui.screens.ClipboardScreen
 import com.example.ui.screens.SettingsScreen
-import com.example.ui.screens.SetupScreen
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.Slate400
 import com.example.ui.theme.Slate900
@@ -56,9 +54,7 @@ import com.example.ui.viewmodel.ClipboardViewModel
 
 enum class AppTab {
     CLIPBOARD,
-    SETUP,
-    SETTINGS,
-    ABOUT
+    SETTINGS
 }
 
 class MainActivity : ComponentActivity() {
@@ -96,7 +92,7 @@ class MainActivity : ComponentActivity() {
 fun MainAppScaffold(viewModel: ClipboardViewModel) {
     var currentTab by remember { mutableStateOf(AppTab.CLIPBOARD) }
 
-    // If on a secondary tab, pressing back returns to Clipboard tab
+    // If on settings tab, pressing back returns to Clipboard tab
     BackHandler(enabled = currentTab != AppTab.CLIPBOARD) {
         currentTab = AppTab.CLIPBOARD
     }
@@ -110,9 +106,7 @@ fun MainAppScaffold(viewModel: ClipboardViewModel) {
                     Text(
                         text = when (currentTab) {
                             AppTab.CLIPBOARD -> stringResource(R.string.app_name)
-                            AppTab.SETUP -> stringResource(R.string.tab_setup)
                             AppTab.SETTINGS -> stringResource(R.string.tab_settings)
-                            AppTab.ABOUT -> stringResource(R.string.tab_about)
                         },
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
@@ -138,10 +132,10 @@ fun MainAppScaffold(viewModel: ClipboardViewModel) {
                         Icon(
                             imageVector = if (currentTab == AppTab.CLIPBOARD) Icons.Filled.Assignment else Icons.Outlined.Assignment,
                             contentDescription = stringResource(R.string.tab_clipboard),
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     },
-                    label = { Text(stringResource(R.string.tab_clipboard), fontSize = 11.sp) },
+                    label = { Text(stringResource(R.string.tab_clipboard), fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Slate950,
                         selectedTextColor = CyanAccent,
@@ -152,29 +146,7 @@ fun MainAppScaffold(viewModel: ClipboardViewModel) {
                     modifier = Modifier.testTag("nav_clipboard")
                 )
 
-                // Setup / Enable Tab
-                NavigationBarItem(
-                    selected = currentTab == AppTab.SETUP,
-                    onClick = { currentTab = AppTab.SETUP },
-                    icon = {
-                        Icon(
-                            imageVector = if (currentTab == AppTab.SETUP) Icons.Filled.Keyboard else Icons.Outlined.Keyboard,
-                            contentDescription = stringResource(R.string.tab_setup),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    },
-                    label = { Text(stringResource(R.string.tab_setup), fontSize = 11.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Slate950,
-                        selectedTextColor = CyanAccent,
-                        indicatorColor = CyanAccent,
-                        unselectedIconColor = Slate400,
-                        unselectedTextColor = Slate400
-                    ),
-                    modifier = Modifier.testTag("nav_setup")
-                )
-
-                // Settings Tab
+                // Settings Tab (includes Setup & About)
                 NavigationBarItem(
                     selected = currentTab == AppTab.SETTINGS,
                     onClick = { currentTab = AppTab.SETTINGS },
@@ -182,10 +154,10 @@ fun MainAppScaffold(viewModel: ClipboardViewModel) {
                         Icon(
                             imageVector = if (currentTab == AppTab.SETTINGS) Icons.Filled.Settings else Icons.Outlined.Settings,
                             contentDescription = stringResource(R.string.tab_settings),
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     },
-                    label = { Text(stringResource(R.string.tab_settings), fontSize = 11.sp) },
+                    label = { Text(stringResource(R.string.tab_settings), fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Slate950,
                         selectedTextColor = CyanAccent,
@@ -195,46 +167,17 @@ fun MainAppScaffold(viewModel: ClipboardViewModel) {
                     ),
                     modifier = Modifier.testTag("nav_settings")
                 )
-
-                // About Tab
-                NavigationBarItem(
-                    selected = currentTab == AppTab.ABOUT,
-                    onClick = { currentTab = AppTab.ABOUT },
-                    icon = {
-                        Icon(
-                            imageVector = if (currentTab == AppTab.ABOUT) Icons.Filled.Info else Icons.Outlined.Info,
-                            contentDescription = stringResource(R.string.tab_about),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    },
-                    label = { Text(stringResource(R.string.tab_about), fontSize = 11.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Slate950,
-                        selectedTextColor = CyanAccent,
-                        indicatorColor = CyanAccent,
-                        unselectedIconColor = Slate400,
-                        unselectedTextColor = Slate400
-                    ),
-                    modifier = Modifier.testTag("nav_about")
-                )
             }
         }
     ) { innerPadding ->
         when (currentTab) {
             AppTab.CLIPBOARD -> ClipboardScreen(
                 viewModel = viewModel,
-                onNavigateToSetup = { currentTab = AppTab.SETUP },
-                modifier = Modifier.padding(innerPadding)
-            )
-            AppTab.SETUP -> SetupScreen(
-                viewModel = viewModel,
+                onNavigateToSetup = { currentTab = AppTab.SETTINGS },
                 modifier = Modifier.padding(innerPadding)
             )
             AppTab.SETTINGS -> SettingsScreen(
                 viewModel = viewModel,
-                modifier = Modifier.padding(innerPadding)
-            )
-            AppTab.ABOUT -> AboutScreen(
                 modifier = Modifier.padding(innerPadding)
             )
         }

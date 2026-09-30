@@ -227,46 +227,40 @@ fun ClipboardScreen(
                                 text = "⚡ FIFO QUEUE",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                color = if (queueModeEnabled) AmberPin else Color.White
+                                color = AmberPin
                             )
-                            if (queueModeEnabled) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Surface(
-                                    color = AmberPin.copy(alpha = 0.2f),
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                        text = "BẬT",
-                                        color = AmberPin,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                    )
-                                }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                color = AmberPin.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "MẶC ĐỊNH BẬT",
+                                    color = AmberPin,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
                             }
                         }
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            androidx.compose.material3.Switch(
-                                checked = queueModeEnabled,
-                                onCheckedChange = { viewModel.toggleQueueMode(it) },
-                                colors = androidx.compose.material3.SwitchDefaults.colors(
-                                    checkedThumbColor = Slate950,
-                                    checkedTrackColor = AmberPin,
-                                    uncheckedThumbColor = Slate400,
-                                    uncheckedTrackColor = Slate800
-                                ),
-                                modifier = Modifier.testTag("queue_mode_switch")
-                            )
+                        if (queueItems.isNotEmpty()) {
+                            TextButton(
+                                onClick = { viewModel.clearQueue() },
+                                modifier = Modifier.height(28.dp).testTag("app_clear_queue_button"),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                            ) {
+                                Text("Xóa Hàng Đợi", color = RedDelete, fontSize = 11.sp)
+                            }
                         }
                     }
 
                     if (queueItems.isEmpty()) {
                         Text(
-                            text = if (queueModeEnabled) "Hàng đợi rỗng. Sao chép các mã đơn hàng để tự động nạp theo thứ tự." else "Hàng đợi đang tắt. Bật công tắc để kích hoạt chế độ Copy/Dán tuần tự.",
+                            text = "Hàng đợi luôn sẵn sàng (Tối đa 50 item). Hãy copy các mã đơn hàng/văn bản liên tục để tự động xếp hàng và dán tuần tự.",
                             fontSize = 12.sp,
                             color = Slate400,
-                            modifier = Modifier.padding(top = 2.dp)
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     } else {
                         Spacer(modifier = Modifier.height(4.dp))
