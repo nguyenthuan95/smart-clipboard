@@ -60,7 +60,6 @@ class ExampleRobolectricTest {
         val now = System.currentTimeMillis()
         val dao = database.clipboardDao()
 
-        // 1. Fresh item: expires in 30 mins
         val freshItem = ClipboardItem(
             text = "Fresh unpinned item",
             createdAt = now,
@@ -69,7 +68,6 @@ class ExampleRobolectricTest {
         )
         val freshId = dao.insert(freshItem)
 
-        // 2. Expired item: expired 1 minute ago
         val expiredItem = ClipboardItem(
             text = "Old unpinned item",
             createdAt = now - (31 * 60 * 1000L),
@@ -78,7 +76,6 @@ class ExampleRobolectricTest {
         )
         val expiredId = dao.insert(expiredItem)
 
-        // 3. Pinned item: created 2 hours ago, but pinned = true
         val pinnedItem = ClipboardItem(
             text = "Important pinned item",
             createdAt = now - (120 * 60 * 1000L),
@@ -87,17 +84,11 @@ class ExampleRobolectricTest {
         )
         val pinnedId = dao.insert(pinnedItem)
 
-        // Run cleanup
         val deletedCount = repository.cleanupExpired()
         assertEquals(1, deletedCount)
 
-        // Expired unpinned item should be deleted
         assertNull(dao.getById(expiredId))
-
-        // Fresh unpinned item should still exist
         assertNotNull(dao.getById(freshId))
-
-        // Pinned item should NOT be deleted even after 30 minutes!
         val preservedPinned = dao.getById(pinnedId)
         assertNotNull(preservedPinned)
         assertTrue(preservedPinned!!.pinned)
@@ -108,105 +99,121 @@ class ExampleRobolectricTest {
         val now = System.currentTimeMillis()
         val dao = database.clipboardDao()
 
-        // Pinned item copied 40 minutes ago
         val item = ClipboardItem(
             text = "Address pinned earlier",
             createdAt = now - (40 * 60 * 1000L),
             pinned = true,
-            expiresAt = now - (10 * 60 * 1000L) // expired already according to initial time
+            expiresAt = now - (10 * 60 * 1000L)
         )
         val id = dao.insert(item)
 
-        // Unpin it: requirement states: "Nếu đã quá 30 phút thì xóa ngay"
         repository.togglePin(id, false)
 
         val result = dao.getById(id)
         assertNull("Item should be deleted immediately because it is already older than 30 minutes", result)
     }
 
-    // --- REQUIREMENT #28: FIFO QUEUE TEST SUITE ---
+    // --- REQUIREMENT #19: MAXIMUM 50 ITEMS TEST SUITE ---
 
     @Test
-    fun `FIFO test - items are enqueued and dequeued in strict First In First Out order`() = runBlocking {
-        val items = listOf("A", "B", "C", "D", "E")
-        for (item in items) {
-            queueRepository.enqueue(item)
+    fun `Test 1 - Add 50 items DH001 to DH050 - Queue has exactly 50 items`() = runBlocking {
+        for (i in 1..50) {
+            val code = String.format("DH%03d", i)
+            val id = queueRepository.enqueue(code)
+            assertTrue("Item $code should be inserted successfully", id > 0)
         }
 
+        assertEquals(50, queueRepository.getCount())
         val queueList = queueRepository.getQueue().map { it.text }
-        assertEquals(listOf("A", "B", "C", "D", "E"), queueList)
-
-        // Consume one by one
-        val dequeued = mutableListOf<String>()
-        while (queueRepository.getNext() != null) {
-            queueRepository.performPasteAndAdvance { nextItem ->
-                dequeued.add(nextItem.text)
-                true
-            }
-        }
-        assertEquals(listOf("A", "B", "C", "D", "E"), dequeued)
-        assertEquals(0, queueRepository.getCount())
+        assertEquals(50, queueList.size)
+        assertEquals("DH001", queueList.first())
+        assertEquals("DH050", queueList.last())
+        assertEquals("DH001", queueRepository.getNext()?.text)
     }
 
     @Test
-    fun `Failure test - failed paste keeps current item as NEXT and does not advance`() = runBlocking {
-        queueRepository.enqueue("A")
-        queueRepository.enqueue("B")
-        queueRepository.enqueue("C")
-
-        // First paste fails (e.g. input not found or not editable)
-        val result = queueRepository.performPasteAndAdvance { nextItem ->
-            assertEquals("A", nextItem.text)
-            false // Simulate failure
+    fun `Test 2 - Add DH051 when queue has 50 items - DH051 rejected from queue, 50 items kept, history still saves DH051`() = runBlocking {
+        // Enqueue 50 items
+        for (i in 1..50) {
+            val code = String.format("DH%03d", i)
+            queueRepository.enqueue(code)
+            repository.saveCopiedText(code)
         }
+        assertEquals(50, queueRepository.getCount())
 
-        assertFalse("Paste should report failure", result)
+        // Try to enqueue 51st item (DH051)
+        val enqueueResult = queueRepository.enqueue("DH051")
+        assertEquals(-1L, enqueueResult) // Rejected!
 
-        // Queue must still have A as NEXT, followed by B and C
-        val queueTexts = queueRepository.getQueue().map { it.text }
-        assertEquals(listOf("A", "B", "C"), queueTexts)
+        // Queue must still have exactly 50 items (DH001 to DH050)
+        assertEquals(50, queueRepository.getCount())
+        val queueList = queueRepository.getQueue().map { it.text }
+        assertEquals("DH001", queueList.first())
+        assertEquals("DH050", queueList.last())
+        assertFalse(queueList.contains("DH051"))
 
-        val currentNext = queueRepository.getNext()
-        assertNotNull(currentNext)
-        assertEquals("A", currentNext!!.text)
+        // Clipboard History still records DH051!
+        val histId51 = repository.saveCopiedText("DH051")
+        assertTrue(histId51 > 0)
+        val hist51 = database.clipboardDao().getById(histId51)
+        assertNotNull("History must store DH051", hist51)
+        assertEquals("DH051", hist51!!.text)
     }
 
     @Test
-    fun `Success test - successful paste removes item from queue and advances to next`() = runBlocking {
-        queueRepository.enqueue("A")
-        queueRepository.enqueue("B")
-        queueRepository.enqueue("C")
+    fun `Test 3 - Paste DH001 successfully - DH001 removed, DH002 becomes NEXT`() = runBlocking {
+        for (i in 1..50) {
+            queueRepository.enqueue(String.format("DH%03d", i))
+        }
 
-        val result = queueRepository.performPasteAndAdvance { nextItem ->
-            assertEquals("A", nextItem.text)
+        val success = queueRepository.performPasteAndAdvance { nextItem ->
+            assertEquals("DH001", nextItem.text)
             true // Successful paste
         }
 
-        assertTrue("Paste should report success", result)
+        assertTrue(success)
+        assertEquals(49, queueRepository.getCount())
 
-        val remainingTexts = queueRepository.getQueue().map { it.text }
-        assertEquals(listOf("B", "C"), remainingTexts)
-
-        val newNext = queueRepository.getNext()
-        assertNotNull(newNext)
-        assertEquals("B", newNext!!.text)
+        val next = queueRepository.getNext()
+        assertNotNull(next)
+        assertEquals("DH002", next!!.text)
     }
 
     @Test
-    fun `Rapid paste test - serialized consecutive pastes consume items without duplicates or skips`() = runBlocking {
-        val inputList = listOf("A", "B", "C", "D", "E")
-        for (item in inputList) {
-            queueRepository.enqueue(item)
+    fun `Test 4 - Add DH051 after DH001 removed - DH051 appended to end, Queue is DH002 to DH051`() = runBlocking {
+        for (i in 1..50) {
+            queueRepository.enqueue(String.format("DH%03d", i))
         }
 
-        val pastedItems = mutableListOf<String>()
+        // Paste DH001
+        queueRepository.performPasteAndAdvance { true }
+        assertEquals(49, queueRepository.getCount())
 
-        // Simulate 5 rapid consecutive pastes (e.g. user tapping paste button very quickly)
-        val jobs = (1..5).map {
+        // Now queue has space for 1 item -> Add DH051
+        val newId = queueRepository.enqueue("DH051")
+        assertTrue("DH051 should be accepted into queue now", newId > 0)
+        assertEquals(50, queueRepository.getCount())
+
+        val queueList = queueRepository.getQueue().map { it.text }
+        assertEquals("DH002", queueList.first())
+        assertEquals("DH051", queueList.last())
+        assertEquals("DH002", queueRepository.getNext()?.text)
+    }
+
+    @Test
+    fun `Test 5 - Paste 50 times continuously - exact sequence DH001 to DH050 without duplicates or skips`() = runBlocking {
+        for (i in 1..50) {
+            queueRepository.enqueue(String.format("DH%03d", i))
+        }
+
+        val pastedList = mutableListOf<String>()
+
+        // Simulate 50 concurrent / rapid paste calls
+        val jobs = (1..50).map {
             async {
                 queueRepository.performPasteAndAdvance { item ->
-                    synchronized(pastedItems) {
-                        pastedItems.add(item.text)
+                    synchronized(pastedList) {
+                        pastedList.add(item.text)
                     }
                     true
                 }
@@ -214,46 +221,75 @@ class ExampleRobolectricTest {
         }
         jobs.awaitAll()
 
-        assertEquals(listOf("A", "B", "C", "D", "E"), pastedItems)
+        assertEquals(50, pastedList.size)
+        for (i in 1..50) {
+            val expected = String.format("DH%03d", i)
+            assertEquals("Item at index ${i - 1} must match", expected, pastedList[i - 1])
+        }
         assertEquals(0, queueRepository.getCount())
     }
 
     @Test
-    fun `Persistence test - queue items persist in database`() = runBlocking {
-        queueRepository.enqueue("A")
-        queueRepository.enqueue("B")
-        queueRepository.enqueue("C")
+    fun `Test 6 - Paste failure at DH025 - DH025 remains NEXT, does not advance to DH026`() = runBlocking {
+        for (i in 1..50) {
+            queueRepository.enqueue(String.format("DH%03d", i))
+        }
 
-        // Re-read directly from database DAO
-        val persisted = database.queueDao().getAll().map { it.text }
-        assertEquals(listOf("A", "B", "C"), persisted)
+        // Paste 1..24 successfully
+        for (i in 1..24) {
+            val res = queueRepository.performPasteAndAdvance { true }
+            assertTrue(res)
+        }
 
-        val next = database.queueDao().getNext()
-        assertNotNull(next)
-        assertEquals("A", next!!.text)
+        assertEquals("DH025", queueRepository.getNext()?.text)
+
+        // Attempt paste at DH025, but it fails (returns false)
+        val failResult = queueRepository.performPasteAndAdvance { nextItem ->
+            assertEquals("DH025", nextItem.text)
+            false // Simulate failure (e.g. non-editable input)
+        }
+
+        assertFalse("Paste must report failure", failResult)
+
+        // DH025 must STILL be NEXT!
+        val nextAfterFail = queueRepository.getNext()
+        assertNotNull(nextAfterFail)
+        assertEquals("DH025", nextAfterFail!!.text)
+        assertEquals(26, queueRepository.getCount()) // 50 - 24 = 26 items left
+    }
+
+    @Test
+    fun `Test 7 - Restart app - Queue retains exact order in database`() = runBlocking {
+        for (i in 1..10) {
+            queueRepository.enqueue(String.format("DH%03d", i))
+        }
+
+        // Simulate app restart by creating a new QueueRepository instance pointing to the same DB
+        val reloadedQueueRepo = QueueRepository(database.queueDao(), context, preferences)
+
+        val reloadedList = reloadedQueueRepo.getQueue().map { it.text }
+        assertEquals(10, reloadedList.size)
+        assertEquals("DH001", reloadedList.first())
+        assertEquals("DH010", reloadedList.last())
+        assertEquals("DH001", reloadedQueueRepo.getNext()?.text)
     }
 
     @Test
     fun `Clear test - clearing queue leaves clipboard history and pinned items intact`() = runBlocking {
-        // Add to history
         val histId1 = repository.saveCopiedText("History Clip 1", isPinned = false)
         val histId2 = repository.saveCopiedText("History Clip 2 (Pinned)", isPinned = true)
 
-        // Add to queue
         queueRepository.enqueue("Queue A")
         queueRepository.enqueue("Queue B")
         queueRepository.enqueue("Queue C")
 
         assertEquals(3, queueRepository.getCount())
 
-        // Clear queue
         queueRepository.clearQueue()
 
-        // Queue must be empty
         assertEquals(0, queueRepository.getCount())
         assertNull(queueRepository.getNext())
 
-        // History items must be completely intact!
         val histItem1 = database.clipboardDao().getById(histId1)
         val histItem2 = database.clipboardDao().getById(histId2)
         assertNotNull("History Clip 1 must still exist", histItem1)

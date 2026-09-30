@@ -3,6 +3,9 @@ package com.example.data.repository
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import com.example.data.local.QueueDao
 import com.example.data.model.ClipboardItem
 import com.example.data.model.QueueItem
@@ -34,12 +37,20 @@ class QueueRepository(
     /**
      * Appends an item to the END of the Queue (Strict FIFO).
      * Never prepends or unshifts.
+     * Enforces MAX_QUEUE_SIZE = 50.
+     * If Queue is full (>= 50), rejects new item and shows warning, keeping existing items intact.
      */
     suspend fun enqueue(text: String, clipboardId: Long? = null, isPinned: Boolean = false): Long {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return -1L
 
         return pasteMutex.withLock {
+            val count = dao.getCount()
+            if (count >= MAX_QUEUE_SIZE) {
+                notifyQueueFull()
+                return@withLock -1L
+            }
+
             val maxPos = dao.getMaxPosition() ?: 0L
             val newPosition = maxPos + 1L
             val item = QueueItem(
@@ -150,5 +161,19 @@ class QueueRepository(
 
     fun clearSuppressedClip() {
         lastSuppressedClipText = null
+    }
+
+    private fun notifyQueueFull() {
+        try {
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(context, "Queue đã đầy — tối đa 50 nội dung.", Toast.LENGTH_SHORT).show()
+            }
+        } catch (_: Exception) {
+            // Safe fallback in non-looper contexts like unit tests
+        }
+    }
+
+    companion object {
+        const val MAX_QUEUE_SIZE = 50
     }
 }
