@@ -1,0 +1,85 @@
+<resources>
+    <string name="app_name">Smart Clipboard</string>
+    <string name="ime_name">Bàn phím Smart Clipboard</string>
+    <string name="subtype_vi">Tiếng Việt</string>
+    <string name="subtype_en">English</string>
+
+    <!-- General -->
+    <string name="tab_clipboard">Clipboard</string>
+    <string name="tab_setup">Kích hoạt</string>
+    <string name="tab_settings">Cài đặt</string>
+    <string name="tab_about">Giới thiệu</string>
+
+    <!-- Clipboard Section -->
+    <string name="section_pinned">Đã ghim</string>
+    <string name="section_recent">Gần đây</string>
+    <string name="clipboard_empty_title">Chưa có nội dung clipboard</string>
+    <string name="clipboard_empty_desc">Sao chép văn bản ở bất kỳ ứng dụng nào hoặc nhập thủ công bên dưới.</string>
+    <string name="action_pin">Ghim</string>
+    <string name="action_unpin">Bỏ ghim</string>
+    <string name="action_delete">Xóa</string>
+    <string name="action_copy">Sao chép</string>
+    <string name="action_paste_all">Dán tất cả</string>
+    <string name="action_paste">Dán</string>
+    <string name="action_pasted">Đã dán</string>
+    <string name="action_select_all">Chọn tất cả</string>
+    <string name="action_deselect_all">Bỏ chọn</string>
+    <string name="action_cancel">Hủy</string>
+    <string name="search_hint">Tìm kiếm nội dung…</string>
+    <string name="add_clip_hint">Nhập văn bản cần lưu vào clipboard…</string>
+    <string name="test_field_hint">Chạm vào đây để thử nghiệm dán văn bản…</string>
+
+    <!-- Setup / Onboarding -->
+    <string name="setup_title">Thiết lập bàn phím Smart Clipboard</string>
+    <string name="setup_subtitle">Để dán liên tục trong mọi ứng dụng, hãy bật Smart Clipboard trong cài đặt hệ thống.</string>
+    <string name="step_1_title">Bước 1: Bật bàn phím trong Cài đặt</string>
+    <string name="step_1_desc">Cho phép Smart Clipboard hoạt động như một phương thức nhập trên thiết bị của bạn.</string>
+    <string name="step_1_button">Mở cài đặt bàn phím</string>
+    <string name="step_2_title">Bước 2: Chọn làm bàn phím hoạt động</string>
+    <string name="step_2_desc">Chuyển sang bàn phím Smart Clipboard để bắt đầu sử dụng.</string>
+    <string name="step_2_button">Chọn bàn phím nhập</string>
+    <string name="status_enabled">Đã bật trong hệ thống</string>
+    <string name="status_not_enabled">Chưa bật trong hệ thống</string>
+    <string name="status_selected">Đang được chọn sử dụng</string>
+    <string name="status_not_selected">Chưa được chọn sử dụng</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Cài đặt Clipboard</string>
+    <string name="pref_history">Lịch sử Clipboard</string>
+    <string name="pref_history_desc">Tự động lưu nội dung sao chép vào bộ nhớ thiết bị</string>
+    <string name="pref_auto_delete">Tự động dọn dẹp</string>
+    <string name="pref_auto_delete_desc">Tự động xóa clipboard chưa ghim sau 30 phút</string>
+    <string name="pref_vibrate">Rung phản hồi khi dán</string>
+    <string name="pref_vibrate_desc">Rung nhẹ khi chạm chọn clipboard để dán</string>
+    <string name="pref_animations">Hiệu ứng chuyển cảnh</string>
+    <string name="pref_animations_desc">Bật hiệu ứng mượt mà khi mở và chọn</string>
+    <string name="pref_theme">Giao diện</string>
+    <string name="pref_theme_dark">Chế độ tối (Khuyên dùng)</string>
+    <string name="pref_theme_light">Chế độ sáng</string>
+    <string name="pref_theme_system">Theo hệ thống</string>
+    <string name="action_cleanup_now">Dọn dẹp clipboard hết hạn ngay</string>
+    <string name="action_clear_unpinned">Xóa tất cả chưa ghim</string>
+
+    <!-- FIFO Queue Mode -->
+    <string name="queue_title">FIFO QUEUE (Hàng đợi Copy/Dán)</string>
+    <string name="queue_mode_label">Hàng đợi FIFO</string>
+    <string name="queue_mode_on">Hàng đợi: BẬT</string>
+    <string name="queue_mode_off">Hàng đợi: TẮT</string>
+    <string name="queue_next_badge">NEXT</string>
+    <string name="queue_action_paste_next">Dán NEXT</string>
+    <string name="queue_action_clear">Xóa Hàng Đợi</string>
+    <string name="queue_empty">Hàng đợi đang rỗng. Bật hàng đợi và sao chép các mã đơn hàng/văn bản.</string>
+    <string name="queue_paste_failed">Không thể dán — hãy kiểm tra ô nhập.</string>
+    <string name="queue_mode_desc">Vào trước - Ra trước. Tự động nạp item tiếp theo vào bộ nhớ và dán tuần tự không cần chọn thủ công.</string>
+    <string name="accessibility_service_label">Tự động dán Smart Clipboard</string>
+    <string name="accessibility_service_desc">Cho phép Smart Clipboard tự động tìm ô nhập văn bản và dán item tiếp theo trong Hàng đợi FIFO xuyên ứng dụng mà không cần mở lại bàn phím.</string>
+    <string name="step_3_title">Bước 3: Hỗ trợ tiếp cận (Tùy chọn cho Hàng đợi xuyên App)</string>
+    <string name="step_3_desc">Bật Dịch vụ Hỗ trợ tiếp cận để dán tự động vào bất kỳ ứng dụng nào (Zalo, Shopee, Chrome...).</string>
+    <string name="step_3_button">Cài đặt Hỗ trợ tiếp cận</string>
+
+    <!-- Security & About -->
+    <string name="about_title">Về Smart Clipboard</string>
+    <string name="about_desc">Trình quản lý Clipboard thông minh với tính năng giữ nguyên bảng điều khiển sau khi dán, cho phép chọn và dán liên tục nhiều nội dung mà không bị đóng giao diện.</string>
+    <string name="privacy_title">Bảo mật &amp; Quyền riêng tư</string>
+    <string name="privacy_desc">Smart Clipboard hoạt động 100% Offline trên thiết bị của bạn. Ứng dụng không yêu cầu quyền Internet, không thu thập dữ liệu và không gửi bất kỳ nội dung nào ra ngoài.</string>
+</resources>
