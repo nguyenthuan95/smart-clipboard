@@ -5,6 +5,9 @@
     <!-- Normal permission for haptic feedback when pasting items -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Overlay permission for floating clipboard bubble and panel -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <application
         android:name=".SmartClipboardApp"
         android:allowBackup="true"
@@ -28,21 +31,12 @@
             </intent-filter>
         </activity>
 
-        <!-- Input Method Service (Keyboard & Clipboard IME) -->
+        <!-- Floating Overlay Service (Draggable Bubble & Clipboard Panel) -->
         <service
-            android:name=".ime.SmartClipboardImeService"
-            android:exported="true"
-            android:label="@string/ime_name"
-            android:permission="android.permission.BIND_INPUT_METHOD">
-            <intent-filter>
-                <action android:name="android.view.InputMethod" />
-            </intent-filter>
-            <meta-data
-                android:name="android.view.im"
-                android:resource="@xml/method" />
-        </service>
+            android:name=".service.FloatingClipboardService"
+            android:exported="false" />
 
-        <!-- Accessibility Service for Cross-App FIFO Queue Paste -->
+        <!-- Accessibility Service for Cross-App Direct Input Paste & FIFO Queue -->
         <service
             android:name=".service.SmartClipboardAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"

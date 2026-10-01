@@ -54,8 +54,10 @@ class ClipboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _testFieldValue = MutableStateFlow("")
     val testFieldValue: StateFlow<String> = _testFieldValue.asStateFlow()
 
-    private val _imeStatus = MutableStateFlow(checkImeStatus())
-    val imeStatus: StateFlow<ImeStatus> = _imeStatus.asStateFlow()
+    private val _systemStatus = MutableStateFlow(checkSystemStatus())
+    val systemStatus: StateFlow<SystemStatus> = _systemStatus.asStateFlow()
+
+    val floatingBubbleEnabled = preferences.floatingBubbleEnabled
 
     val pinnedItems: StateFlow<List<ClipboardItem>> = combine(
         repository.getPinnedItemsFlow(),
@@ -212,26 +214,31 @@ class ClipboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun refreshImeStatus() {
-        _imeStatus.value = checkImeStatus()
+    fun refreshSystemStatus() {
+        _systemStatus.value = checkSystemStatus()
     }
 
-    private fun checkImeStatus(): ImeStatus {
+    fun checkSystemStatus(): SystemStatus {
         val context = getApplication<Application>()
-        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-            ?: return ImeStatus(isEnabled = false, isSelected = false)
+        val hasOverlay = Settings.canDrawOverlays(context)
+        val isAccessibility = com.example.service.SmartClipboardAccessibilityService.isServiceRunning
+        val isBubbleRunning = com.example.service.FloatingClipboardService.isRunning
+        return SystemStatus(
+            hasOverlayPermission = hasOverlay,
+            isAccessibilityEnabled = isAccessibility,
+            isFloatingBubbleRunning = isBubbleRunning
+        )
+    }
 
-        val packageName = context.packageName
-        val enabledMethods = imm.enabledInputMethodList
-        val isEnabled = enabledMethods.any { it.packageName == packageName }
-
-        val currentIme = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.DEFAULT_INPUT_METHOD
-        ) ?: ""
-        val isSelected = currentIme.contains(packageName)
-
-        return ImeStatus(isEnabled = isEnabled, isSelected = isSelected)
+    fun toggleFloatingBubble(enabled: Boolean) {
+        val context = getApplication<Application>()
+        preferences.setFloatingBubbleEnabled(enabled)
+        if (enabled) {
+            com.example.service.FloatingClipboardService.startService(context)
+        } else {
+            com.example.service.FloatingClipboardService.stopService(context)
+        }
+        refreshSystemStatus()
     }
 
     // Settings actions
@@ -241,7 +248,8 @@ class ClipboardViewModel(application: Application) : AndroidViewModel(applicatio
     fun setDarkMode(mode: String) = preferences.setDarkModePreference(mode)
 }
 
-data class ImeStatus(
-    val isEnabled: Boolean,
-    val isSelected: Boolean
+data class SystemStatus(
+    val hasOverlayPermission: Boolean,
+    val isAccessibilityEnabled: Boolean,
+    val isFloatingBubbleRunning: Boolean
 )

@@ -85,7 +85,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val imeStatus by viewModel.imeStatus.collectAsState()
+    val systemStatus by viewModel.systemStatus.collectAsState()
+    val floatingBubbleEnabled by viewModel.floatingBubbleEnabled.collectAsState()
     val historyEnabled by viewModel.historyEnabled.collectAsState()
     val vibrateOnPaste by viewModel.vibrateOnPaste.collectAsState()
     val enableAnimations by viewModel.enableAnimations.collectAsState()
@@ -111,8 +112,32 @@ fun SettingsScreen(
             color = Color.White
         )
 
+        // Banner: Independent Manager Explanation
+        Surface(
+            color = Slate900,
+            shape = RoundedCornerShape(12.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, CyanAccent.copy(alpha = 0.4f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = "Smart Clipboard Manager độc lập",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = CyanAccent
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Hoạt động song song cùng bàn phím hiện tại của bạn (Gboard, Samsung Keyboard...). Không cần đặt app làm bàn phím mặc định.",
+                    fontSize = 13.sp,
+                    color = Slate300,
+                    lineHeight = 18.sp
+                )
+            }
+        }
+
         // ==========================================
-        // SECTION 1: KÍCH HOẠT BÀN PHÍM & HỖ TRỢ TIẾP CẬN
+        // SECTION 1: KÍCH HOẠT QUYỀN HỆ THỐNG
         // ==========================================
         Text(
             text = "KÍCH HOẠT HỆ THỐNG",
@@ -131,7 +156,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Step 1: Bật bàn phím
+                // Step 1: Cho phép hiển thị trên ứng dụng khác
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -139,53 +164,56 @@ fun SettingsScreen(
                     Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .background(if (imeStatus.isEnabled) GreenSuccess.copy(alpha = 0.2f) else CyanAccent.copy(alpha = 0.2f), CircleShape),
+                            .background(if (systemStatus.hasOverlayPermission) GreenSuccess.copy(alpha = 0.2f) else CyanAccent.copy(alpha = 0.2f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "1",
                             fontWeight = FontWeight.Bold,
-                            color = if (imeStatus.isEnabled) GreenSuccess else CyanAccent,
+                            color = if (systemStatus.hasOverlayPermission) GreenSuccess else CyanAccent,
                             fontSize = 13.sp
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Bật bàn phím trong Cài đặt",
+                            text = "Hiển thị trên ứng dụng khác",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
                             color = Color.White
                         )
                         Text(
-                            text = if (imeStatus.isEnabled) "✓ Đã bật trong hệ thống" else "Chưa kích hoạt phương thức nhập",
+                            text = if (systemStatus.hasOverlayPermission) "✓ Đã cấp quyền hiển thị" else "Cần cấp quyền để hiện nút nổi 📋",
                             fontSize = 12.sp,
-                            color = if (imeStatus.isEnabled) GreenSuccess else Slate400
+                            color = if (systemStatus.hasOverlayPermission) GreenSuccess else Slate400
                         )
                     }
                     Button(
                         onClick = {
-                            val intent = Intent(Settings.ACTION_INPUT_METHOD_SETTINGS).apply {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                android.net.Uri.parse("package:${context.packageName}")
+                            ).apply {
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                             try { context.startActivity(intent) } catch (_: Exception) {}
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (imeStatus.isEnabled) Slate800 else CyanAccent
+                            containerColor = if (systemStatus.hasOverlayPermission) Slate800 else CyanAccent
                         ),
                         shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.height(34.dp).testTag("open_ime_settings_button")
+                        modifier = Modifier.height(34.dp).testTag("open_overlay_settings_btn")
                     ) {
                         Text(
-                            text = if (imeStatus.isEnabled) "Cài đặt" else "Bật ngay",
-                            color = if (imeStatus.isEnabled) Color.White else Slate950,
+                            text = if (systemStatus.hasOverlayPermission) "Đã cấp" else "Cấp quyền",
+                            color = if (systemStatus.hasOverlayPermission) Color.White else Slate950,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
                     }
                 }
 
-                // Step 2: Chọn bàn phím hoạt động
+                // Step 2: Bật Accessibility Service
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -193,81 +221,28 @@ fun SettingsScreen(
                     Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .background(if (imeStatus.isSelected) GreenSuccess.copy(alpha = 0.2f) else AmberPin.copy(alpha = 0.2f), CircleShape),
+                            .background(if (systemStatus.isAccessibilityEnabled) GreenSuccess.copy(alpha = 0.2f) else AmberPin.copy(alpha = 0.2f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "2",
                             fontWeight = FontWeight.Bold,
-                            color = if (imeStatus.isSelected) GreenSuccess else AmberPin,
+                            color = if (systemStatus.isAccessibilityEnabled) GreenSuccess else AmberPin,
                             fontSize = 13.sp
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Chọn làm bàn phím hoạt động",
+                            text = "Dịch vụ Hỗ trợ tiếp cận",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
                             color = Color.White
                         )
                         Text(
-                            text = if (imeStatus.isSelected) "✓ Đang sử dụng Smart Clipboard" else "Chưa chọn làm bàn phím hiện tại",
+                            text = if (systemStatus.isAccessibilityEnabled) "✓ Đã bật Hỗ trợ tiếp cận" else "Cần bật để tự động dán vào ô nhập",
                             fontSize = 12.sp,
-                            color = if (imeStatus.isSelected) GreenSuccess else Slate400
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                            @Suppress("DEPRECATION")
-                            imm?.showInputMethodPicker()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (imeStatus.isSelected) Slate800 else AmberPin
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.height(34.dp).testTag("select_ime_picker_button")
-                    ) {
-                        Text(
-                            text = if (imeStatus.isSelected) "Đổi bàn phím" else "Chọn",
-                            color = if (imeStatus.isSelected) Color.White else Slate950,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                // Step 3: Accessibility Service (Hỗ trợ tiếp cận)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .background(Slate800, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "3",
-                            fontWeight = FontWeight.Bold,
-                            color = Slate300,
-                            fontSize = 13.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Hỗ trợ tiếp cận (Tùy chọn xuyên app)",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Tự động dán Queue vào Zalo, Chrome, app giao hàng...",
-                            fontSize = 12.sp,
-                            color = Slate400
+                            color = if (systemStatus.isAccessibilityEnabled) GreenSuccess else Slate400
                         )
                     }
                     Button(
@@ -277,18 +252,59 @@ fun SettingsScreen(
                             }
                             try { context.startActivity(intent) } catch (_: Exception) {}
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Slate800),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (systemStatus.isAccessibilityEnabled) Slate800 else AmberPin
+                        ),
                         shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.height(34.dp).testTag("open_accessibility_settings_button")
+                        modifier = Modifier.height(34.dp).testTag("open_accessibility_settings_btn")
                     ) {
                         Text(
-                            text = "Mở cài đặt",
-                            color = Color.White,
+                            text = if (systemStatus.isAccessibilityEnabled) "Đã bật" else "Bật ngay",
+                            color = if (systemStatus.isAccessibilityEnabled) Color.White else Slate950,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
                     }
                 }
+
+                // Step 3: Nút nổi Clipboard Switch
+                SettingSwitchRow(
+                    icon = Icons.Default.Bolt,
+                    iconTint = CyanAccent,
+                    title = "Nút nổi Clipboard 📋 trên màn hình",
+                    description = "Hiển thị bong bóng nổi để mở bảng Clipboard trên bất kỳ app nào (Zalo, Chrome, Messenger...)",
+                    checked = floatingBubbleEnabled,
+                    onCheckedChange = { viewModel.toggleFloatingBubble(it) },
+                    testTag = "setting_floating_bubble_switch"
+                )
+            }
+        }
+
+        // ==========================================
+        // SECTION 2: HƯỚNG DẪN 5 BƯỚC SỬ DỤNG
+        // ==========================================
+        Text(
+            text = "HƯỚNG DẪN SỬ DỤNG",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = CyanAccent,
+            letterSpacing = 1.sp
+        )
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Slate900),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                GuideStepRow(step = "1", text = "Cấp quyền 'Hiển thị trên ứng dụng khác' ở bước 1.")
+                GuideStepRow(step = "2", text = "Bật 'Hỗ trợ tiếp cận (Accessibility)' cho Smart Clipboard ở bước 2.")
+                GuideStepRow(step = "3", text = "Quay lại ứng dụng Smart Clipboard.")
+                GuideStepRow(step = "4", text = "Mở một ứng dụng bất kỳ có ô nhập liệu (Zalo, Chrome, Messenger...).")
+                GuideStepRow(step = "5", text = "Nhấn nút nổi 📋 để mở bảng Clipboard và chạm nội dung để dán liên tục mà không cần đóng bảng!")
             }
         }
 
@@ -615,5 +631,35 @@ private fun SettingInfoRow(
                 lineHeight = 16.sp
             )
         }
+    }
+}
+
+@Composable
+private fun GuideStepRow(step: String, text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(CyanAccent.copy(alpha = 0.2f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = step,
+                color = CyanAccent,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = text,
+            color = Slate300,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            modifier = Modifier.weight(1f)
+        )
     }
 }

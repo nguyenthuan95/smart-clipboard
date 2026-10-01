@@ -26,6 +26,21 @@ class PreferencesManager(context: Context) {
     private val _queueModeEnabled = MutableStateFlow(prefs.getBoolean(KEY_QUEUE_MODE, true))
     val queueModeEnabled: StateFlow<Boolean> = _queueModeEnabled.asStateFlow()
 
+    private val _floatingBubbleEnabled = MutableStateFlow(prefs.getBoolean(KEY_FLOATING_BUBBLE, true))
+    val floatingBubbleEnabled: StateFlow<Boolean> = _floatingBubbleEnabled.asStateFlow()
+
+    fun setFloatingBubbleEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_FLOATING_BUBBLE, enabled).apply()
+        _floatingBubbleEnabled.value = enabled
+    }
+
+    fun getBubblePositionX(): Int = prefs.getInt(KEY_BUBBLE_X, 20)
+    fun getBubblePositionY(): Int = prefs.getInt(KEY_BUBBLE_Y, 200)
+
+    fun saveBubblePosition(x: Int, y: Int) {
+        prefs.edit().putInt(KEY_BUBBLE_X, x).putInt(KEY_BUBBLE_Y, y).apply()
+    }
+
     fun setQueueModeEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_QUEUE_MODE, enabled).apply()
         _queueModeEnabled.value = enabled
@@ -60,6 +75,9 @@ class PreferencesManager(context: Context) {
         private const val KEY_ANIMATIONS = "key_animations"
         private const val KEY_DARK_MODE = "key_dark_mode"
         private const val KEY_QUEUE_MODE = "key_queue_mode"
+        private const val KEY_FLOATING_BUBBLE = "key_floating_bubble"
+        private const val KEY_BUBBLE_X = "key_bubble_x"
+        private const val KEY_BUBBLE_Y = "key_bubble_y"
 
         @Volatile
         private var INSTANCE: PreferencesManager? = null

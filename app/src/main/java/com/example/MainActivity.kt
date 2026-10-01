@@ -82,8 +82,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.refreshImeStatus()
+        viewModel.refreshSystemStatus()
         viewModel.syncFromSystemClipboard()
+        if (android.provider.Settings.canDrawOverlays(this) && viewModel.floatingBubbleEnabled.value) {
+            com.example.service.FloatingClipboardService.startService(this)
+        }
     }
 }
 

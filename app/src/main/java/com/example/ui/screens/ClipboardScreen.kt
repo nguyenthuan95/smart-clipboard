@@ -98,7 +98,7 @@ fun ClipboardScreen(
     val selectedIds by viewModel.selectedIds.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val testFieldValue by viewModel.testFieldValue.collectAsState()
-    val imeStatus by viewModel.imeStatus.collectAsState()
+    val systemStatus by viewModel.systemStatus.collectAsState()
     val queueModeEnabled by viewModel.queueModeEnabled.collectAsState()
     val queueItems by viewModel.queueItems.collectAsState()
     val nextQueueItem by viewModel.nextQueueItem.collectAsState()
@@ -109,8 +109,8 @@ fun ClipboardScreen(
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // Top Status Bar: Keyboard activation alert if not selected
-            if (!imeStatus.isSelected) {
+            // Top Status Bar: Overlay & Accessibility setup banner
+            if (!systemStatus.hasOverlayPermission || !systemStatus.isAccessibilityEnabled) {
                 Surface(
                     color = Slate900,
                     modifier = Modifier
@@ -118,38 +118,32 @@ fun ClipboardScreen(
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .clickable { onNavigateToSetup() }
-                        .border(1.dp, if (!imeStatus.isEnabled) AmberPin.copy(alpha = 0.5f) else CyanAccent.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                        .border(1.dp, AmberPin.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = if (!imeStatus.isEnabled) Icons.Default.Warning else Icons.Default.Keyboard,
+                            imageVector = Icons.Default.Warning,
                             contentDescription = null,
-                            tint = if (!imeStatus.isEnabled) AmberPin else CyanAccent,
+                            tint = AmberPin,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (!imeStatus.isEnabled) "Chưa bật bàn phím Smart Clipboard" else "Chưa chọn làm bàn phím hoạt động",
+                                text = "Kích hoạt Nút nổi Clipboard & Tự động dán",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                             Text(
-                                text = "Chạm để mở hướng dẫn kích hoạt nhanh",
+                                text = "Chạm để bật Hiển thị trên ứng dụng khác & Hỗ trợ tiếp cận",
                                 fontSize = 11.sp,
                                 color = Slate400
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = Slate700,
-                            modifier = Modifier.size(16.dp)
-                        )
                     }
                 }
             }
