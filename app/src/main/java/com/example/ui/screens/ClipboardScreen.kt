@@ -464,7 +464,7 @@ fun ClipboardScreen(
             }
 
             // Bottom Action Bar when Multi-Select is Active
-            AnimatedVisibility(visible = isMultiSelectMode) {
+            if (isMultiSelectMode) {
                 Surface(
                     color = Slate900,
                     modifier = Modifier

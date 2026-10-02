@@ -230,16 +230,6 @@ class SmartClipboardImeService : InputMethodService(),
     }
 
     private fun triggerHaptic() {
-        if (!SmartClipboardApp.instance.preferences.vibrateOnPaste.value) return
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator?.vibrate(30)
-            }
-        } catch (_: Exception) {
-            // Ignore if vibration fails
-        }
+        // Disabled per user request: no vibration
     }
 }

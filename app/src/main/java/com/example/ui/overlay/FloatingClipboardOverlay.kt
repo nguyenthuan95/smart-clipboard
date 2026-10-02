@@ -318,7 +318,7 @@ fun FloatingClipboardOverlay(
                 if (recentItems.isNotEmpty()) {
                     item(key = "overlay_recent_header") {
                         Text(
-                            text = "Gần đây (Tự dọn sau 30 phút)",
+                            text = "Gần đây",
                             color = Slate400,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 11.sp,

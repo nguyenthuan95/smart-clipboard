@@ -2,9 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Normal permission for haptic feedback when pasting items -->
-    <uses-permission android:name="android.permission.VIBRATE" />
-
     <!-- Overlay permission for floating clipboard bubble and panel -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
