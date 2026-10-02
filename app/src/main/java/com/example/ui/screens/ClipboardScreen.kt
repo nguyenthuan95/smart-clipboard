@@ -97,14 +97,10 @@ fun ClipboardScreen(
     val isMultiSelectMode by viewModel.isMultiSelectMode.collectAsState()
     val selectedIds by viewModel.selectedIds.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val testFieldValue by viewModel.testFieldValue.collectAsState()
     val systemStatus by viewModel.systemStatus.collectAsState()
     val queueModeEnabled by viewModel.queueModeEnabled.collectAsState()
     val queueItems by viewModel.queueItems.collectAsState()
     val nextQueueItem by viewModel.nextQueueItem.collectAsState()
-
-    var showAddDialog by remember { mutableStateOf(false) }
-    var newClipText by remember { mutableStateOf("") }
 
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -145,55 +141,6 @@ fun ClipboardScreen(
                             )
                         }
                     }
-                }
-            }
-
-            // Test Input Field for instant live testing
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Slate900),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Ô thử nghiệm dán văn bản",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = CyanAccent
-                        )
-                        if (testFieldValue.isNotEmpty()) {
-                            Text(
-                                text = "Xóa ô",
-                                fontSize = 11.sp,
-                                color = Slate400,
-                                modifier = Modifier.clickable { viewModel.updateTestFieldValue("") }
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = testFieldValue,
-                        onValueChange = { viewModel.updateTestFieldValue(it) },
-                        placeholder = { Text("Chạm vào đây để mở bàn phím và thử dán liên tục...", fontSize = 13.sp, color = Slate400) },
-                        modifier = Modifier.fillMaxWidth().testTag("test_input_field"),
-                        minLines = 2,
-                        maxLines = 4,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = CyanAccent,
-                            unfocusedBorderColor = Slate800,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = CyanAccent
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    )
                 }
             }
 
@@ -471,7 +418,6 @@ fun ClipboardScreen(
                                 onSelectToggle = { viewModel.toggleSelection(item.id) },
                                 onTogglePin = { viewModel.togglePin(item.id) },
                                 onDelete = { viewModel.deleteItem(item.id) },
-                                onPasteToTest = { viewModel.pasteIntoTestField(item.text) },
                                 onCopyToSystem = {
                                     val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                                     cm?.setPrimaryClip(android.content.ClipData.newPlainText("Smart Clipboard", item.text))
@@ -506,7 +452,6 @@ fun ClipboardScreen(
                                 onSelectToggle = { viewModel.toggleSelection(item.id) },
                                 onTogglePin = { viewModel.togglePin(item.id) },
                                 onDelete = { viewModel.deleteItem(item.id) },
-                                onPasteToTest = { viewModel.pasteIntoTestField(item.text) },
                                 onCopyToSystem = {
                                     val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                                     cm?.setPrimaryClip(android.content.ClipData.newPlainText("Smart Clipboard", item.text))
@@ -576,75 +521,6 @@ fun ClipboardScreen(
                 }
             }
         }
-
-        // FAB to add manual clipboard text
-        if (!isMultiSelectMode) {
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                containerColor = CyanAccent,
-                contentColor = Slate950,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(20.dp)
-                    .testTag("add_clip_fab")
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Thêm clipboard")
-            }
-        }
-
-        // Add Dialog
-        if (showAddDialog) {
-            AlertDialog(
-                onDismissRequest = {
-                    showAddDialog = false
-                    newClipText = ""
-                },
-                title = { Text("Thêm vào Clipboard", fontWeight = FontWeight.Bold, color = Color.White) },
-                text = {
-                    Column {
-                        Text("Nhập nội dung cần lưu vào danh sách clipboard:", fontSize = 13.sp, color = Slate400)
-                        Spacer(modifier = Modifier.height(10.dp))
-                        OutlinedTextField(
-                            value = newClipText,
-                            onValueChange = { newClipText = it },
-                            placeholder = { Text("Ví dụ: Địa chỉ, Số tài khoản, Tin nhắn mẫu...", fontSize = 13.sp) },
-                            modifier = Modifier.fillMaxWidth().testTag("add_clip_input"),
-                            minLines = 3,
-                            maxLines = 6,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = CyanAccent,
-                                unfocusedBorderColor = Slate700,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
-                            )
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            if (newClipText.isNotBlank()) {
-                                viewModel.addManualClip(newClipText)
-                                showAddDialog = false
-                                newClipText = ""
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = CyanAccent)
-                    ) {
-                        Text("Lưu", color = Slate950, fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showAddDialog = false
-                        newClipText = ""
-                    }) {
-                        Text("Hủy", color = Slate400)
-                    }
-                },
-                containerColor = Slate900
-            )
-        }
     }
 }
 
@@ -656,7 +532,6 @@ fun AppClipboardCard(
     onSelectToggle: () -> Unit,
     onTogglePin: () -> Unit,
     onDelete: () -> Unit,
-    onPasteToTest: () -> Unit,
     onCopyToSystem: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -674,7 +549,7 @@ fun AppClipboardCard(
             )
             .clickable {
                 if (isMultiSelectMode) onSelectToggle()
-                else onPasteToTest()
+                else onCopyToSystem()
             }
             .testTag("app_clipboard_card_${item.id}"),
         color = Slate900,
