@@ -3,6 +3,8 @@ package com.example.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -71,6 +73,7 @@ fun ClipboardScreen(
     val context = LocalContext.current
     val queueItems by viewModel.queueItems.collectAsState()
     val nextQueueItem by viewModel.nextQueueItem.collectAsState()
+    val systemStatus by viewModel.systemStatus.collectAsState()
 
     Column(
         modifier = modifier
@@ -79,6 +82,38 @@ fun ClipboardScreen(
             .padding(16.dp)
             .testTag("clipboard_screen")
     ) {
+        // Accessibility Warning Banner if Disabled
+        if (!systemStatus.isAccessibilityEnabled) {
+            Card(
+                onClick = {
+                    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    try { context.startActivity(intent) } catch (_: Exception) {}
+                },
+                colors = CardDefaults.cardColors(containerColor = AmberPin.copy(alpha = 0.15f)),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+                    .testTag("accessibility_warning_card")
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "⚠️ Dịch vụ Hỗ trợ tiếp cận đang tắt. Chạm vào đây để bật nhằm tự động nạp khi sao chép!",
+                        color = AmberPin,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 16.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
         // App Title & Status
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),

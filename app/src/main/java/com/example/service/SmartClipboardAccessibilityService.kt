@@ -100,8 +100,6 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
         try {
             val clip = cm.primaryClip
             if (clip == null || clip.itemCount == 0) {
-                val mime = try { cm.primaryClipDescription?.getMimeType(0) } catch (_: Exception) { null }
-                DebugLog.d("COPY-SKIP", "src=$source ts=${clipTs(cm)} mime=$mime")
                 return
             }
 
@@ -135,28 +133,23 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        // 1. Log mọi sự kiện cửa sổ hoặc notification từ app khác
-        if ((event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-             event.eventType == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) &&
-            event.packageName != packageName) {
-            DebugLog.d("WIN", "type=${event.eventType} pkg=${event.packageName} cls=${event.className} text=${event.text}")
+        // 1. Xử lý overlay xem trước clipboard của Android 13+ (SystemUI)
+        if (event.packageName == "com.android.systemui" &&
+            (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+             event.eventType == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED)) {
 
-            // Bắt trực tiếp văn bản từ overlay xem trước clipboard của Android 13+ (SystemUI)
-            if (event.packageName == "com.android.systemui" && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 val t = event.text?.joinToString("")?.trim().orEmpty()
                 val queueRepo = SmartClipboardApp.instance.queueRepository
                 if (t.isEmpty()) {
                     // overlay rỗng: gần như luôn do chính app sync, không bật Activity
                     if (!queueRepo.justSynced()) {
                         readClipViaFocus("systemui-empty")
-                    } else {
-                        DebugLog.d("OVERLAY-SYNC-IGNORE", "Ignored empty overlay from internal sync")
                     }
                     return
                 }
 
                 if (queueRepo.isSuppressedClip(t)) {
-                    DebugLog.d("OVERLAY-SUPPRESSED", "Ignored suppressed text: '$t'")
                     return
                 }
 
@@ -177,12 +170,6 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
                     readClipViaFocus("systemui-win")
                 }
             }
-        }
-
-        // 2. Log click từ app khác (ít event nên không spam)
-        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED &&
-            event.packageName != packageName) {
-            DebugLog.d("CLICK", "pkg=${event.packageName} text=${event.text} desc=${event.contentDescription}")
         }
 
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager

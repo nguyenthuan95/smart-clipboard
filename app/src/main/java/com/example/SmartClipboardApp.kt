@@ -103,12 +103,9 @@ class SmartClipboardApp : Application() {
                 }
                 lastProcessedClipText = text
 
-                // 1. Always save to regular Clipboard History
-                val clipId = repository.saveCopiedText(text)
-
-                // 2. If Queue Mode is ON, append to the end of FIFO Queue
+                // Append directly to the end of FIFO Queue (no history storage)
                 if (preferences.queueModeEnabled.value) {
-                    val qId = queueRepository.enqueue(text = text, clipboardId = if (clipId > 0) clipId else null)
+                    val qId = queueRepository.enqueue(text = text)
                     if (qId > 0) {
                         try {
                             withContext(Dispatchers.Main) {
