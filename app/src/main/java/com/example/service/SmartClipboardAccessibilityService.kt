@@ -67,31 +67,42 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
 
     private fun checkClipboardCopy(cm: ClipboardManager, source: String = "Event") {
         try {
-            val clip = cm.primaryClip ?: return
-            if (clip.itemCount > 0) {
-                val text = clip.getItemAt(0)?.coerceToText(this)?.toString()?.trim()
-                if (!text.isNullOrEmpty() && text != lastCapturedText) {
-                    val queueRepo = SmartClipboardApp.instance.queueRepository
-                    // If this clip is our own internal sync, skip capturing as a new item
-                    if (queueRepo.isSuppressedClip(text)) {
-                        lastCapturedText = text
-                        DebugLog.d("COPY-SUPPRESSED", "Ignored internal clip sync: '$text'")
-                        return
-                    }
+            val clip = cm.primaryClip
+            if (clip == null || clip.itemCount == 0) {
+                DebugLog.d("COPY-SKIP", "src=$source clip=null/empty (nghi bị chặn đọc khi chạy nền)")
+                return
+            }
+
+            val text = clip.getItemAt(0)?.coerceToText(this)?.toString()?.trim()
+            if (!text.isNullOrEmpty() && text != lastCapturedText) {
+                val queueRepo = SmartClipboardApp.instance.queueRepository
+                // If this clip is our own internal sync, skip capturing as a new item
+                if (queueRepo.isSuppressedClip(text)) {
                     lastCapturedText = text
-                    DebugLog.d("COPY-DETECTED", "src=$source, text='$text'")
-                    serviceScope.launch {
-                        SmartClipboardApp.instance.capturePrimaryClip(cm)
-                    }
+                    DebugLog.d("COPY-SUPPRESSED", "Ignored internal clip sync: '$text'")
+                    return
                 }
+                lastCapturedText = text
+                DebugLog.d("COPY-DETECTED", "src=$source, text='$text'")
+                serviceScope.launch {
+                    SmartClipboardApp.instance.capturePrimaryClip(cm)
+                }
+            } else if (text != null && text == lastCapturedText) {
+                DebugLog.d("COPY-SAME", "src=$source text equals lastCapturedText: '$text'")
             }
         } catch (e: Exception) {
-            DebugLog.e("COPY-ERR", "checkClipboardCopy failed", e)
+            DebugLog.e("COPY-ERR", "src=$source checkClipboardCopy failed", e)
         }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+
+        // Log click từ app khác (ít event nên không spam)
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED &&
+            event.packageName != packageName) {
+            DebugLog.d("CLICK", "pkg=${event.packageName} text=${event.text} desc=${event.contentDescription}")
+        }
 
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
 
