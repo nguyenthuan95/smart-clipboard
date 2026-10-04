@@ -71,8 +71,9 @@
     <string name="queue_empty">Hàng đợi đang rỗng. Bật hàng đợi và sao chép các mã đơn hàng/văn bản.</string>
     <string name="queue_paste_failed">Không thể dán — hãy kiểm tra ô nhập.</string>
     <string name="queue_mode_desc">Vào trước - Ra trước. Tự động nạp item tiếp theo vào bộ nhớ và dán tuần tự không cần chọn thủ công.</string>
-    <string name="accessibility_service_label">Tự động dán Smart Clipboard</string>
-    <string name="accessibility_service_desc">Cho phép Smart Clipboard tự động tìm ô nhập văn bản và dán item tiếp theo trong Hàng đợi FIFO xuyên ứng dụng mà không cần mở lại bàn phím.</string>
+    <string name="accessibility_service_label">Smart Clipboard Tự động lưu</string>
+    <string name="accessibility_service_desc">Cho phép Smart Clipboard tự động ghi nhớ các văn bản bạn sao chép ở các ứng dụng khác.</string>
+    <string name="accessibility_service_description">Cho phép Smart Clipboard tự động ghi nhớ các văn bản bạn sao chép ở các ứng dụng khác.</string>
     <string name="step_3_title">Bước 3: Hỗ trợ tiếp cận (Tùy chọn cho Hàng đợi xuyên App)</string>
     <string name="step_3_desc">Bật Dịch vụ Hỗ trợ tiếp cận để dán tự động vào bất kỳ ứng dụng nào (Zalo, Shopee, Chrome...).</string>
     <string name="step_3_button">Cài đặt Hỗ trợ tiếp cận</string>

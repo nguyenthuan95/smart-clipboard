@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,10 +19,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -36,10 +40,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.AmberPin
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.GreenSuccess
 import com.example.ui.theme.Slate300
@@ -54,7 +60,9 @@ fun SettingsScreen(
     viewModel: ClipboardViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val historyEnabled by viewModel.historyEnabled.collectAsState()
+    val systemStatus by viewModel.systemStatus.collectAsState()
 
     Column(
         modifier = modifier
@@ -73,44 +81,68 @@ fun SettingsScreen(
             color = Color.White
         )
 
-        // Banner: 100% Native Zero Permission
-        Surface(
-            color = Slate900,
-            shape = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, GreenSuccess.copy(alpha = 0.5f)),
+        // Banner: Background Copy Interception Explanation
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Slate900),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (systemStatus.isAccessibilityEnabled) GreenSuccess.copy(alpha = 0.6f) else AmberPin.copy(alpha = 0.6f)
+            ),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Row(
-                modifier = Modifier.padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = GreenSuccess,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (systemStatus.isAccessibilityEnabled) Icons.Default.CheckCircle else Icons.Default.Accessibility,
+                        contentDescription = null,
+                        tint = if (systemStatus.isAccessibilityEnabled) GreenSuccess else AmberPin,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Tích hợp chuẩn Android — 0 quyền yêu cầu",
+                        text = if (systemStatus.isAccessibilityEnabled) "✓ Đang tự động lưu ngầm 100%" else "Tự động lưu khi Copy ở app khác (Android 10+)",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        color = GreenSuccess
+                        color = Color.White
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Không cần cấp quyền Hỗ trợ tiếp cận (Accessibility). Không cần quyền Hiển thị trên ứng dụng khác. Hoạt động như trình sao chép tích hợp sẵn.",
-                        fontSize = 12.sp,
-                        color = Slate300,
-                        lineHeight = 16.sp
-                    )
+                }
+
+                Text(
+                    text = if (systemStatus.isAccessibilityEnabled)
+                        "Dịch vụ Hỗ trợ tiếp cận đang bật. Mọi văn bản bạn Sao chép ở Zalo, Chrome, Facebook... sẽ tự động lưu ngầm vào ứng dụng ngay lập tức."
+                    else
+                        "Theo quy định bảo mật của Android (từ Android 10 trở lên), các app chạy ngầm không được tự ý đọc nội dung bạn copy ở app khác trừ khi bạn bật Hỗ trợ tiếp cận. Nếu bật, app sẽ tự động ghi nhớ mọi nội dung copy mà không cần mở app.",
+                    fontSize = 12.sp,
+                    color = Slate300,
+                    lineHeight = 17.sp
+                )
+
+                if (!systemStatus.isAccessibilityEnabled) {
+                    Button(
+                        onClick = {
+                            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            try { context.startActivity(intent) } catch (_: Exception) {}
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AmberPin),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth().height(38.dp).testTag("enable_accessibility_btn")
+                    ) {
+                        Text(
+                            text = "Bật Hỗ trợ tiếp cận để tự động lưu ngầm",
+                            color = Slate950,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             }
         }
 
         // ==========================================
-        // SECTION 1: CÁCH SỬ DỤNG TIỆN LỢI
+        // SECTION 1: CÁC CÁCH SỬ DỤNG TIỆN LỢI
         // ==========================================
         Text(
             text = "CÁCH DÙNG TRONG MỌI ỨNG DỤNG",
@@ -131,20 +163,20 @@ fun SettingsScreen(
             ) {
                 FeatureGuideRow(
                     step = "1",
-                    title = "Menu văn bản hệ thống (Khuyên dùng)",
-                    desc = "Khi ở bất kỳ ứng dụng nào (Zalo, Messenger, Chrome...), chạm giữ ô nhập hoặc chọn văn bản. Menu hệ thống của Android sẽ xuất hiện mục '⚡ Dán FIFO tiếp theo' hoặc '📋 Chọn từ Clipboard' để chèn ngay lập tức!"
+                    title = "Ô Cài đặt nhanh (Quick Settings Tile)",
+                    desc = "Vuốt từ trên cùng màn hình xuống, chạm ô '⚡ Dán FIFO': Ứng dụng sẽ nạp ngay mã tiếp theo vào bộ nhớ tạm và mở app để bạn dán ngay lập tức!"
                 )
 
                 FeatureGuideRow(
                     step = "2",
-                    title = "Ô cài đặt nhanh (Quick Settings Tile)",
-                    desc = "Vuốt từ trên cùng màn hình xuống để mở thanh Cài đặt nhanh của điện thoại, nhấn ô '⚡ Dán FIFO' để nạp ngay nội dung tiếp theo vào bộ nhớ tạm rồi dán bình thường."
+                    title = "Menu văn bản hệ thống (Android Process Text)",
+                    desc = "Khi ở Zalo, Messenger, Chrome... chọn văn bản hoặc chạm giữ ô nhập. Menu hệ thống sẽ xuất hiện mục: '⚡ Dán FIFO tiếp theo', '📋 Chọn từ Clipboard' và '📥 Lưu vào Smart Clipboard'."
                 )
 
                 FeatureGuideRow(
                     step = "3",
-                    title = "Sao chép & Tự động xếp hàng",
-                    desc = "Chỉ cần nhấn Sao chép các đoạn văn bản/mã đơn liên tục. Hệ thống tự động ghi nhớ và đưa vào hàng đợi FIFO tuần tự (tối đa 50 item, tự dọn unpinned sau 30 phút)."
+                    title = "Tự động đồng bộ khi mở ứng dụng",
+                    desc = "Bất cứ khi nào bạn vừa Copy và chuyển sang app Smart Clipboard, nội dung sao chép mới nhất sẽ được tự động nhận diện và đưa vào danh sách."
                 )
             }
         }

@@ -85,6 +85,13 @@ class MainActivity : ComponentActivity() {
         viewModel.refreshSystemStatus()
         viewModel.syncFromSystemClipboard()
     }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            viewModel.syncFromSystemClipboard()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

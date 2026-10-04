@@ -219,9 +219,10 @@ class ClipboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun checkSystemStatus(): SystemStatus {
+        val isAccessibility = com.example.service.SmartClipboardAccessibilityService.isServiceRunning
         return SystemStatus(
             hasOverlayPermission = true,
-            isAccessibilityEnabled = true,
+            isAccessibilityEnabled = isAccessibility,
             isFloatingBubbleRunning = false
         )
     }
