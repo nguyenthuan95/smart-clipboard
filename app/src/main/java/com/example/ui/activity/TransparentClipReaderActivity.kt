@@ -19,6 +19,7 @@ class TransparentClipReaderActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        DebugLog.d("FOCUS-CREATE", "TransparentClipReaderActivity created")
         window.addFlags(
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
@@ -32,6 +33,7 @@ class TransparentClipReaderActivity : Activity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        DebugLog.d("FOCUS-FOCUS", "hasFocus=$hasFocus")
         if (hasFocus && !hasRead) {
             readAndFinish()
         }
@@ -40,6 +42,7 @@ class TransparentClipReaderActivity : Activity() {
     override fun onResume() {
         super.onResume()
         if (!hasRead && hasWindowFocus()) {
+            DebugLog.d("FOCUS-RESUME", "hasWindowFocus=true")
             readAndFinish()
         }
     }
@@ -58,6 +61,10 @@ class TransparentClipReaderActivity : Activity() {
                 ClipState.knownTs = ts
 
                 if (!text.isNullOrEmpty()) {
+                    if (text.length > 500 || text.count { it == '\n' } > 5) {
+                        DebugLog.d("FOCUS-READ-REJECT", "Text exceeds limit (len=${text.length})")
+                        return
+                    }
                     DebugLog.d("FOCUS-READ", "text='$text' ts=$ts")
                     val queueRepo = SmartClipboardApp.instance.queueRepository
                     if (!queueRepo.isSuppressedClip(text)) {

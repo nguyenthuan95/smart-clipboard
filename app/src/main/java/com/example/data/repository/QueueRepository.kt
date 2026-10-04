@@ -47,6 +47,11 @@ class QueueRepository(
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return -1L
 
+        if (trimmed.length > 500 || trimmed.count { it == '\n' } > 5) {
+            DebugLog.d("ENQUEUE-REJECT", "Text exceeds limit (len=${trimmed.length}, lines=${trimmed.count { it == '\n' }})")
+            return -1L
+        }
+
         if (isSuppressedClip(trimmed)) {
             DebugLog.d("ENQUEUE-SUPPRESSED", trimmed.take(40))
             return -1L
