@@ -29,6 +29,11 @@ class QueueRepository(
     @Volatile
     private var suppressedAt = 0L
 
+    @Volatile
+    private var lastSyncAt = 0L
+
+    fun justSynced(ms: Long = 1000L): Boolean = System.currentTimeMillis() - lastSyncAt < ms
+
     val queueItemsFlow: Flow<List<QueueItem>> = dao.getAllFlow()
     val nextItemFlow: Flow<QueueItem?> = dao.getNextFlow()
 
@@ -189,6 +194,7 @@ class QueueRepository(
             try {
                 lastSuppressedClipText = next.text
                 suppressedAt = System.currentTimeMillis()
+                lastSyncAt = System.currentTimeMillis()
                 val clip = ClipData.newPlainText("Smart Clipboard Queue", next.text)
                 cm.setPrimaryClip(clip)
                 com.example.util.ClipState.knownTs = if (android.os.Build.VERSION.SDK_INT >= 26) {
@@ -201,6 +207,7 @@ class QueueRepository(
         } else {
             try {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    lastSyncAt = System.currentTimeMillis()
                     cm.clearPrimaryClip()
                     com.example.util.ClipState.knownTs = if (android.os.Build.VERSION.SDK_INT >= 26) {
                         cm.primaryClipDescription?.timestamp ?: 0L

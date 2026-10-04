@@ -144,18 +144,34 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
             // Bắt trực tiếp văn bản từ overlay xem trước clipboard của Android 13+ (SystemUI)
             if (event.packageName == "com.android.systemui" && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 val t = event.text?.joinToString("")?.trim().orEmpty()
+                val queueRepo = SmartClipboardApp.instance.queueRepository
+                if (t.isEmpty()) {
+                    // overlay rỗng: gần như luôn do chính app sync, không bật Activity
+                    if (!queueRepo.justSynced()) {
+                        readClipViaFocus("systemui-empty")
+                    } else {
+                        DebugLog.d("OVERLAY-SYNC-IGNORE", "Ignored empty overlay from internal sync")
+                    }
+                    return
+                }
+
+                if (queueRepo.isSuppressedClip(t)) {
+                    DebugLog.d("OVERLAY-SUPPRESSED", "Ignored suppressed text: '$t'")
+                    return
+                }
+
                 if (phoneRegex.matches(t)) {
                     val phone = t.replace(Regex("[ .\\-()]"), "")
                     DebugLog.d("OVERLAY-COPY", "phone=$phone")
                     lastCapturedText = null // Cho phép copy lại cùng một số
                     serviceScope.launch {
-                        SmartClipboardApp.instance.queueRepository.enqueue(phone)
+                        queueRepo.enqueue(phone)
                     }
-                } else if (t.isNotEmpty() && t.length <= 500 && t.count { it == '\n' } <= 5) {
+                } else if (t.length <= 500 && t.count { it == '\n' } <= 5) {
                     DebugLog.d("OVERLAY-COPY", "text='$t'")
                     lastCapturedText = null
                     serviceScope.launch {
-                        SmartClipboardApp.instance.queueRepository.enqueue(t)
+                        queueRepo.enqueue(t)
                     }
                 } else {
                     readClipViaFocus("systemui-win")
@@ -226,7 +242,8 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
             val e = norm(eventText)
             DebugLog.d("PASTE-CHECK", "expected='$n' received='$e'")
 
-            if (n.isNotEmpty() && e.contains(n)) {
+            val lenOk = kotlin.math.abs(event.addedCount - next.text.length) <= 3
+            if (n.isNotEmpty() && e.contains(n) && lenOk) {
                 lastPastedAdvanceTime = System.currentTimeMillis()
                 lastCapturedText = null // Reset so subsequent copies are never falsely blocked
                 DebugLog.d("PASTE-MATCH", "Matched NEXT! Advancing queue...")
