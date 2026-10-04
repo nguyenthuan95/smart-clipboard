@@ -5,6 +5,7 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
+import android.widget.Toast
 import com.example.data.local.AppDatabase
 import com.example.data.pref.PreferencesManager
 import com.example.data.repository.ClipboardRepository
@@ -15,6 +16,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SmartClipboardApp : Application() {
 
@@ -105,7 +107,14 @@ class SmartClipboardApp : Application() {
 
                 // 2. If Queue Mode is ON, append to the end of FIFO Queue
                 if (preferences.queueModeEnabled.value) {
-                    queueRepository.enqueue(text = text, clipboardId = if (clipId > 0) clipId else null)
+                    val qId = queueRepository.enqueue(text = text, clipboardId = if (clipId > 0) clipId else null)
+                    if (qId > 0) {
+                        try {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@SmartClipboardApp, "📥 Đã thêm vào hàng đợi: $text", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (_: Exception) {}
+                    }
                 }
             }
         } catch (_: SecurityException) {
