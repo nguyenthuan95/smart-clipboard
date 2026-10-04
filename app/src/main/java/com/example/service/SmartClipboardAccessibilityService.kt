@@ -25,6 +25,9 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
     @Volatile
     private var lastPastedAdvanceTime: Long = 0L
 
+    @Volatile
+    private var pendingClipRead: Boolean = false
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -49,7 +52,14 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
     private fun setupClipboardListener() {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
         clipboardListener = ClipboardManager.OnPrimaryClipChangedListener {
-            checkClipboardCopy(cm, source = "Listener")
+            val clip = try { cm.primaryClip } catch (_: Exception) { null }
+            val mime = try { cm.primaryClipDescription?.getMimeType(0) } catch (_: Exception) { null }
+            DebugLog.d("LISTENER", "fired, readable=${clip != null}, desc=$mime")
+            if (clip == null) {
+                pendingClipRead = true
+            } else {
+                checkClipboardCopy(cm, "Listener")
+            }
         }
         cm.addPrimaryClipChangedListener(clipboardListener)
     }
@@ -90,7 +100,13 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
             return
         }
 
-        // 2. Detect when user clicks "Copy" or switches window
+        // 2. If we had a pending clipboard read that was denied when listener fired, retry on event
+        if (pendingClipRead && cm != null) {
+            pendingClipRead = false
+            checkClipboardCopy(cm, source = "PendingRetry_${event.eventType}")
+        }
+
+        // 3. Detect when user clicks "Copy", selects text, or switches window
         if (cm != null && (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED ||
                     event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED ||
                     event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED)) {
@@ -102,6 +118,9 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
         s?.filter { it.isLetterOrDigit() }?.toString().orEmpty()
 
     private fun handlePasteEvent(event: AccessibilityEvent) {
+        // Chỉ xử lý khi có text được thêm vào (bỏ qua backspace, delete, placeholder)
+        if (event.addedCount <= 0) return
+
         if (System.currentTimeMillis() - lastPastedAdvanceTime < 400L) return
 
         var eventText = event.text?.joinToString("") ?: ""

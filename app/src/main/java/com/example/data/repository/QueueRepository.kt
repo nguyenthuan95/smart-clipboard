@@ -44,6 +44,11 @@ class QueueRepository(
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return -1L
 
+        if (isSuppressedClip(trimmed)) {
+            DebugLog.d("ENQUEUE-SUPPRESSED", trimmed.take(40))
+            return -1L
+        }
+
         return pasteMutex.withLock {
             // Do not re-enqueue if the last item in queue has identical text
             val lastItem = dao.getLast()
@@ -184,12 +189,7 @@ class QueueRepository(
     fun isSuppressedClip(text: String?): Boolean {
         if (text == null) return false
         val suppressed = lastSuppressedClipText
-        if (suppressed != null && suppressed == text) {
-            // Once suppressed, clear it so future real copies of the same text are allowed
-            lastSuppressedClipText = null
-            return true
-        }
-        return false
+        return suppressed != null && suppressed == text
     }
 
     fun markSuppressed(text: String) {
