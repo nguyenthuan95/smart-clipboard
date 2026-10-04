@@ -101,6 +101,7 @@ class QueueRepository(
                 syncSystemClipboardWithNextLocked()
             }
             val newNext = dao.getNext()
+            com.example.service.SmartClipboardAccessibilityService.instance?.resetLastCapturedText()
             DebugLog.d("ADVANCE-DONE", "New NEXT in DB: '${newNext?.text}'")
             newNext
         }

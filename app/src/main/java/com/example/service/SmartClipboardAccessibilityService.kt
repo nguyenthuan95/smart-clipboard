@@ -23,6 +23,8 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var clipboardListener: ClipboardManager.OnPrimaryClipChangedListener? = null
 
+    private val phoneRegex = Regex("^\\+?[0-9][0-9 .\\-()]{7,17}$")
+
     @Volatile
     private var lastCapturedText: String? = null
 
@@ -31,6 +33,11 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
 
     @Volatile
     private var pendingClipRead: Boolean = false
+
+    fun resetLastCapturedText() {
+        lastCapturedText = null
+        DebugLog.d("CAPTURE-RESET", "lastCapturedText reset to null")
+    }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -133,8 +140,26 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
              event.eventType == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) &&
             event.packageName != packageName) {
             DebugLog.d("WIN", "type=${event.eventType} pkg=${event.packageName} cls=${event.className} text=${event.text}")
-            if (event.packageName == "com.android.systemui") {
-                readClipViaFocus("systemui-win")
+
+            // Bắt trực tiếp văn bản từ overlay xem trước clipboard của Android 13+ (SystemUI)
+            if (event.packageName == "com.android.systemui" && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                val t = event.text?.joinToString("")?.trim().orEmpty()
+                if (phoneRegex.matches(t)) {
+                    val phone = t.replace(Regex("[ .\\-()]"), "")
+                    DebugLog.d("OVERLAY-COPY", "phone=$phone")
+                    lastCapturedText = null // Cho phép copy lại cùng một số
+                    serviceScope.launch {
+                        SmartClipboardApp.instance.queueRepository.enqueue(phone)
+                    }
+                } else if (t.isNotEmpty() && t.length <= 500 && t.count { it == '\n' } <= 5) {
+                    DebugLog.d("OVERLAY-COPY", "text='$t'")
+                    lastCapturedText = null
+                    serviceScope.launch {
+                        SmartClipboardApp.instance.queueRepository.enqueue(t)
+                    }
+                } else {
+                    readClipViaFocus("systemui-win")
+                }
             }
         }
 

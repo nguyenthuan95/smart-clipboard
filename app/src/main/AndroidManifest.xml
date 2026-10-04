@@ -71,10 +71,12 @@
         <!-- Brief Transparent Focus Grabber for Background Clipboard Reading on Android 10+ -->
         <activity
             android:name=".ui.activity.TransparentClipReaderActivity"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:exported="false"
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
             android:noHistory="true"
-            android:excludeFromRecents="true" />
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="false" />
 
         <!-- Quick Settings Tile -->
         <service

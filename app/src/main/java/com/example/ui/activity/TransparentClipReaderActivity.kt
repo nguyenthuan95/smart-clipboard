@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
 import com.example.SmartClipboardApp
 import com.example.util.ClipState
 import com.example.util.DebugLog
@@ -20,15 +19,18 @@ class TransparentClipReaderActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         DebugLog.d("FOCUS-CREATE", "TransparentClipReaderActivity created")
-        window.addFlags(
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-        )
         window.attributes = window.attributes.apply {
             width = 1
             height = 1
             alpha = 0f
         }
+
+        window.decorView.postDelayed({
+            if (!hasRead && !isFinishing) {
+                DebugLog.d("FOCUS-TIMEOUT", "Forcing read after delay, hasFocus=${hasWindowFocus()}")
+                readAndFinish()
+            }
+        }, 300)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
