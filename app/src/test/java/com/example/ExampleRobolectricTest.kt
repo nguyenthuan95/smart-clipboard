@@ -279,9 +279,9 @@ class ExampleRobolectricTest {
         val histId1 = repository.saveCopiedText("History Clip 1", isPinned = false)
         val histId2 = repository.saveCopiedText("History Clip 2 (Pinned)", isPinned = true)
 
-        queueRepository.enqueue("Queue A")
-        queueRepository.enqueue("Queue B")
-        queueRepository.enqueue("Queue C")
+        queueRepository.enqueue("DH001")
+        queueRepository.enqueue("DH002")
+        queueRepository.enqueue("DH003")
 
         assertEquals(3, queueRepository.getCount())
 

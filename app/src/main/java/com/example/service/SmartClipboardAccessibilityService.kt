@@ -139,16 +139,18 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
              event.eventType == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED)) {
 
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-                val t = event.text?.joinToString("")?.trim().orEmpty()
-                val queueRepo = SmartClipboardApp.instance.queueRepository
-                if (t.isEmpty()) {
-                    // overlay rỗng: gần như luôn do chính app sync, không bật Activity
-                    if (!queueRepo.justSynced()) {
-                        readClipViaFocus("systemui-empty")
-                    }
+                val texts = event.text
+                if (texts.size != 1) {
+                    DebugLog.d("OVERLAY-IGNORE", "size=${texts.size}")
                     return
                 }
 
+                val t = texts[0]?.toString()?.trim().orEmpty()
+                if (t.isEmpty()) {
+                    return
+                }
+
+                val queueRepo = SmartClipboardApp.instance.queueRepository
                 if (queueRepo.isSuppressedClip(t)) {
                     return
                 }
@@ -160,14 +162,12 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
                     serviceScope.launch {
                         queueRepo.enqueue(phone)
                     }
-                } else if (t.length <= 500 && t.count { it == '\n' } <= 5) {
+                } else {
                     DebugLog.d("OVERLAY-COPY", "text='$t'")
                     lastCapturedText = null
                     serviceScope.launch {
                         queueRepo.enqueue(t)
                     }
-                } else {
-                    readClipViaFocus("systemui-win")
                 }
             }
         }

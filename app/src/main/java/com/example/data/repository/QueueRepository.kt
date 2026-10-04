@@ -43,6 +43,8 @@ class QueueRepository(
 
     suspend fun getCount(): Int = dao.getCount()
 
+    private val codeRegex = Regex("^(?=.*\\d)\\+?[A-Za-z0-9]{4,30}$")
+
     /**
      * Appends an item to the END of the Queue (Strict FIFO).
      * Never prepends or unshifts.
@@ -52,8 +54,9 @@ class QueueRepository(
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return -1L
 
-        if (trimmed.length > 500 || trimmed.count { it == '\n' } > 5) {
-            DebugLog.d("ENQUEUE-REJECT", "Text exceeds limit (len=${trimmed.length}, lines=${trimmed.count { it == '\n' }})")
+        val code = trimmed.replace(Regex("[ .\\-]"), "") // chỉ để kiểm tra, vẫn lưu nguyên văn
+        if (!codeRegex.matches(code)) {
+            DebugLog.d("ENQUEUE-REJECT", "không phải mã: ${trimmed.take(40)}")
             return -1L
         }
 
