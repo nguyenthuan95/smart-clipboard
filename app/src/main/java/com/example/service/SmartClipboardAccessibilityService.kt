@@ -4,9 +4,13 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
 import com.example.SmartClipboardApp
+import com.example.ui.activity.TransparentClipReaderActivity
+import com.example.util.ClipState
 import com.example.util.DebugLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -65,11 +69,39 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
         cm.addPrimaryClipChangedListener(clipboardListener)
     }
 
+    private fun clipTs(cm: ClipboardManager): Long =
+        if (Build.VERSION.SDK_INT >= 26) cm.primaryClipDescription?.timestamp ?: 0L else 0L
+
+    private fun readClipViaFocus() {
+        try {
+            val intent = Intent(this, TransparentClipReaderActivity::class.java).apply {
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_NO_ANIMATION or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                )
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            DebugLog.e("FOCUS-LAUNCH-ERR", "Could not start TransparentClipReaderActivity", e)
+        }
+    }
+
+    private fun checkClipChangedInBackground(cm: ClipboardManager) {
+        val ts = clipTs(cm)
+        if (ts == 0L || ts == ClipState.knownTs) return
+        ClipState.knownTs = ts
+        DebugLog.d("CLIP-TS", "clipboard changed in background ts=$ts -> focus read")
+        readClipViaFocus()
+    }
+
     private fun checkClipboardCopy(cm: ClipboardManager, source: String = "Event") {
         try {
             val clip = cm.primaryClip
             if (clip == null || clip.itemCount == 0) {
-                DebugLog.d("COPY-SKIP", "src=$source clip=null/empty (nghi bị chặn đọc khi chạy nền)")
+                val mime = try { cm.primaryClipDescription?.getMimeType(0) } catch (_: Exception) { null }
+                DebugLog.d("COPY-SKIP", "src=$source ts=${clipTs(cm)} mime=$mime")
                 return
             }
 
@@ -98,13 +130,24 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+
+        // Tín hiệu timestamp của clipboard khi có sự kiện từ app khác (API 26+)
+        if (cm != null && event.packageName != packageName &&
+            event.eventType != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) {
+            checkClipChangedInBackground(cm)
+            // Kiểm tra lại sau khi popup đóng, phòng trường hợp không còn event nào nữa
+            serviceScope.launch {
+                delay(400)
+                withContext(Dispatchers.Main) { checkClipChangedInBackground(cm) }
+            }
+        }
+
         // Log click từ app khác (ít event nên không spam)
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED &&
             event.packageName != packageName) {
             DebugLog.d("CLICK", "pkg=${event.packageName} text=${event.text} desc=${event.contentDescription}")
         }
-
-        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
 
         // 1. Detect when text is pasted into an input field (TYPE_VIEW_TEXT_CHANGED)
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) {

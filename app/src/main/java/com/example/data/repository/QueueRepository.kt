@@ -185,7 +185,10 @@ class QueueRepository(
                 suppressedAt = System.currentTimeMillis()
                 val clip = ClipData.newPlainText("Smart Clipboard Queue", next.text)
                 cm.setPrimaryClip(clip)
-                DebugLog.d("CLIPBOARD-SYNC", "System clipboard set to NEXT: '${next.text}'")
+                com.example.util.ClipState.knownTs = if (android.os.Build.VERSION.SDK_INT >= 26) {
+                    cm.primaryClipDescription?.timestamp ?: 0L
+                } else 0L
+                DebugLog.d("CLIPBOARD-SYNC", "System clipboard set to NEXT: '${next.text}', ts=${com.example.util.ClipState.knownTs}")
             } catch (e: Exception) {
                 DebugLog.e("CLIPBOARD-SYNC-ERR", "Failed to sync NEXT to system clipboard", e)
             }
@@ -193,6 +196,9 @@ class QueueRepository(
             try {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                     cm.clearPrimaryClip()
+                    com.example.util.ClipState.knownTs = if (android.os.Build.VERSION.SDK_INT >= 26) {
+                        cm.primaryClipDescription?.timestamp ?: 0L
+                    } else 0L
                     DebugLog.d("CLIPBOARD-CLEAR", "Queue empty, clipboard cleared")
                 }
             } catch (e: Exception) {
