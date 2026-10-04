@@ -7,11 +7,11 @@ import android.content.Context
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
 import com.example.SmartClipboardApp
+import com.example.util.DebugLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 class SmartClipboardAccessibilityService : AccessibilityService() {
@@ -43,35 +43,40 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
         serviceInfo = info
 
         setupClipboardListener()
+        DebugLog.d("SERVICE", "Accessibility Service Connected successfully")
     }
 
     private fun setupClipboardListener() {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
         clipboardListener = ClipboardManager.OnPrimaryClipChangedListener {
-            checkClipboardCopy(cm)
+            checkClipboardCopy(cm, source = "Listener")
         }
         cm.addPrimaryClipChangedListener(clipboardListener)
     }
 
-    private fun checkClipboardCopy(cm: ClipboardManager) {
+    private fun checkClipboardCopy(cm: ClipboardManager, source: String = "Event") {
         try {
             val clip = cm.primaryClip ?: return
             if (clip.itemCount > 0) {
                 val text = clip.getItemAt(0)?.coerceToText(this)?.toString()?.trim()
                 if (!text.isNullOrEmpty() && text != lastCapturedText) {
                     val queueRepo = SmartClipboardApp.instance.queueRepository
-                    // If this clip is our own advance sync, skip capturing as a new item
+                    // If this clip is our own internal sync, skip capturing as a new item
                     if (queueRepo.isSuppressedClip(text)) {
                         lastCapturedText = text
+                        DebugLog.d("COPY-SUPPRESSED", "Ignored internal clip sync: '$text'")
                         return
                     }
                     lastCapturedText = text
+                    DebugLog.d("COPY-DETECTED", "src=$source, text='$text'")
                     serviceScope.launch {
                         SmartClipboardApp.instance.capturePrimaryClip(cm)
                     }
                 }
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            DebugLog.e("COPY-ERR", "checkClipboardCopy failed", e)
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -89,40 +94,46 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
         if (cm != null && (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED ||
                     event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED ||
                     event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED)) {
-            checkClipboardCopy(cm)
+            checkClipboardCopy(cm, source = "Event_${event.eventType}")
         }
     }
 
-    private fun handlePasteEvent(event: AccessibilityEvent) {
-        val now = System.currentTimeMillis()
-        // Debounce paste advance (min 400ms between advances)
-        if (now - lastPastedAdvanceTime < 400L) return
+    private fun norm(s: CharSequence?): String =
+        s?.filter { it.isLetterOrDigit() }?.toString().orEmpty()
 
-        val eventText = event.text?.joinToString("") ?: ""
+    private fun handlePasteEvent(event: AccessibilityEvent) {
+        if (System.currentTimeMillis() - lastPastedAdvanceTime < 400L) return
+
+        var eventText = event.text?.joinToString("") ?: ""
+        if (eventText.isEmpty()) {
+            eventText = event.source?.text?.toString() ?: ""
+        }
+
+        DebugLog.d(
+            "PASTE-EVENT",
+            "pkg=${event.packageName} text='$eventText' added=${event.addedCount} removed=${event.removedCount} before='${event.beforeText}'"
+        )
         if (eventText.isEmpty()) return
 
-        val queueRepo = SmartClipboardApp.instance.queueRepository
-        val nextItem = runBlocking { queueRepo.getNext() } ?: return
+        serviceScope.launch {
+            val queueRepo = SmartClipboardApp.instance.queueRepository
+            val next = queueRepo.getNext() ?: return@launch
+            val n = norm(next.text)
+            val e = norm(eventText)
+            DebugLog.d("PASTE-CHECK", "expected='$n' received='$e'")
 
-        // If the newly entered text contains the current NEXT item in queue:
-        if (eventText.contains(nextItem.text)) {
-            lastPastedAdvanceTime = now
-            serviceScope.launch {
-                val advancedNext = queueRepo.advanceNext()
+            if (n.isNotEmpty() && e.contains(n)) {
+                lastPastedAdvanceTime = System.currentTimeMillis()
+                lastCapturedText = null // Reset so subsequent copies are never falsely blocked
+                DebugLog.d("PASTE-MATCH", "Matched NEXT! Advancing queue...")
+                val advanced = queueRepo.advanceNext()
                 withContext(Dispatchers.Main) {
-                    if (advancedNext != null) {
-                        Toast.makeText(
-                            this@SmartClipboardAccessibilityService,
-                            "✓ Đã dán: ${nextItem.text}\n➔ Tiếp theo: ${advancedNext.text}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        Toast.makeText(
-                            this@SmartClipboardAccessibilityService,
-                            "✓ Đã dán: ${nextItem.text} (Hàng đợi đã hết)",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                    Toast.makeText(
+                        this@SmartClipboardAccessibilityService,
+                        if (advanced != null) "✓ Đã dán: ${next.text}\n➔ Tiếp theo: ${advanced.text}"
+                        else "✓ Đã dán: ${next.text} (Hàng đợi đã hết)",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }

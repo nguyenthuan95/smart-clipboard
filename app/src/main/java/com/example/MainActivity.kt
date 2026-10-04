@@ -17,10 +17,12 @@ import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -44,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.screens.ClipboardScreen
+import com.example.ui.screens.LogScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.Slate400
@@ -54,6 +57,7 @@ import com.example.ui.viewmodel.ClipboardViewModel
 
 enum class AppTab {
     CLIPBOARD,
+    LOGS,
     SETTINGS
 }
 
@@ -113,6 +117,7 @@ fun MainAppScaffold(viewModel: ClipboardViewModel) {
                     Text(
                         text = when (currentTab) {
                             AppTab.CLIPBOARD -> stringResource(R.string.app_name)
+                            AppTab.LOGS -> "Nhật ký Hoạt động"
                             AppTab.SETTINGS -> stringResource(R.string.tab_settings)
                         },
                         fontWeight = FontWeight.Bold,
@@ -153,6 +158,28 @@ fun MainAppScaffold(viewModel: ClipboardViewModel) {
                     modifier = Modifier.testTag("nav_clipboard")
                 )
 
+                // Logs Tab (Nhật ký)
+                NavigationBarItem(
+                    selected = currentTab == AppTab.LOGS,
+                    onClick = { currentTab = AppTab.LOGS },
+                    icon = {
+                        Icon(
+                            imageVector = if (currentTab == AppTab.LOGS) Icons.Filled.Terminal else Icons.Outlined.Terminal,
+                            contentDescription = "Nhật ký",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    label = { Text("Nhật ký", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Slate950,
+                        selectedTextColor = CyanAccent,
+                        indicatorColor = CyanAccent,
+                        unselectedIconColor = Slate400,
+                        unselectedTextColor = Slate400
+                    ),
+                    modifier = Modifier.testTag("nav_logs")
+                )
+
                 // Settings Tab (includes Setup & About)
                 NavigationBarItem(
                     selected = currentTab == AppTab.SETTINGS,
@@ -181,6 +208,9 @@ fun MainAppScaffold(viewModel: ClipboardViewModel) {
             AppTab.CLIPBOARD -> ClipboardScreen(
                 viewModel = viewModel,
                 onNavigateToSetup = { currentTab = AppTab.SETTINGS },
+                modifier = Modifier.padding(innerPadding)
+            )
+            AppTab.LOGS -> LogScreen(
                 modifier = Modifier.padding(innerPadding)
             )
             AppTab.SETTINGS -> SettingsScreen(
