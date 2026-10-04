@@ -96,6 +96,17 @@ class QueueRepository(
         }
     }
 
+    suspend fun advanceNext(): QueueItem? {
+        return pasteMutex.withLock {
+            val nextItem = dao.getNext() ?: return@withLock null
+            dao.deleteById(nextItem.id)
+            if (preferences.queueModeEnabled.value) {
+                syncSystemClipboardWithNextLocked()
+            }
+            dao.getNext()
+        }
+    }
+
     /**
      * Removes all items from the Queue.
      * Does NOT touch Clipboard History or pinned items.

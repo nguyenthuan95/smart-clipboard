@@ -2,9 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Overlay permission for floating clipboard bubble and panel -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-
     <application
         android:name=".SmartClipboardApp"
         android:allowBackup="true"
@@ -28,23 +25,41 @@
             </intent-filter>
         </activity>
 
-        <!-- Floating Overlay Service (Draggable Bubble & Clipboard Panel) -->
-        <service
-            android:name=".service.FloatingClipboardService"
-            android:exported="false" />
-
-        <!-- Accessibility Service for Cross-App Direct Input Paste & FIFO Queue -->
-        <service
-            android:name=".service.SmartClipboardAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:label="@string/accessibility_service_label"
+        <!-- Native Android Text Selection Menu Integration (No Special Permissions Needed) -->
+        <activity
+            android:name=".ui.activity.ProcessTextActivity"
+            android:label="⚡ Dán FIFO tiếp theo"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
+        </activity>
+
+        <activity
+            android:name=".ui.activity.ChooseClipActivity"
+            android:label="📋 Chọn từ Clipboard"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- Quick Settings Tile for One-Tap Next FIFO Clip Load -->
+        <service
+            android:name=".service.SmartClipboardTileService"
+            android:icon="@mipmap/ic_launcher"
+            android:label="⚡ Dán FIFO"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
         </service>
 
     </application>

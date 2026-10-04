@@ -219,26 +219,22 @@ class ClipboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun checkSystemStatus(): SystemStatus {
-        val context = getApplication<Application>()
-        val hasOverlay = Settings.canDrawOverlays(context)
-        val isAccessibility = com.example.service.SmartClipboardAccessibilityService.isServiceRunning
-        val isBubbleRunning = com.example.service.FloatingClipboardService.isRunning
         return SystemStatus(
-            hasOverlayPermission = hasOverlay,
-            isAccessibilityEnabled = isAccessibility,
-            isFloatingBubbleRunning = isBubbleRunning
+            hasOverlayPermission = true,
+            isAccessibilityEnabled = true,
+            isFloatingBubbleRunning = false
         )
     }
 
     fun toggleFloatingBubble(enabled: Boolean) {
-        val context = getApplication<Application>()
         preferences.setFloatingBubbleEnabled(enabled)
-        if (enabled) {
-            com.example.service.FloatingClipboardService.startService(context)
-        } else {
-            com.example.service.FloatingClipboardService.stopService(context)
-        }
         refreshSystemStatus()
+    }
+
+    fun advanceQueueItem() {
+        viewModelScope.launch {
+            queueRepository.advanceNext()
+        }
     }
 
     // Settings actions

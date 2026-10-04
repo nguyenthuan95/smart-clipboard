@@ -84,9 +84,6 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         viewModel.refreshSystemStatus()
         viewModel.syncFromSystemClipboard()
-        if (android.provider.Settings.canDrawOverlays(this) && viewModel.floatingBubbleEnabled.value) {
-            com.example.service.FloatingClipboardService.startService(this)
-        }
     }
 }
 

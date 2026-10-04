@@ -105,45 +105,6 @@ fun ClipboardScreen(
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // Top Status Bar: Overlay & Accessibility setup banner
-            if (!systemStatus.hasOverlayPermission || !systemStatus.isAccessibilityEnabled) {
-                Surface(
-                    color = Slate900,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onNavigateToSetup() }
-                        .border(1.dp, AmberPin.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = AmberPin,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Kích hoạt Nút nổi Clipboard & Tự động dán",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Chạm để bật Hiển thị trên ứng dụng khác & Hỗ trợ tiếp cận",
-                                fontSize = 11.sp,
-                                color = Slate400
-                            )
-                        }
-                    }
-                }
-            }
-
             // FIFO Queue Mode Card
             Card(
                 colors = CardDefaults.cardColors(containerColor = Slate900),
@@ -256,13 +217,16 @@ fun ClipboardScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
-                                onClick = { viewModel.pasteNextIntoTestField() },
+                                onClick = {
+                                    viewModel.advanceQueueItem()
+                                    Toast.makeText(context, "Đã nạp item tiếp theo vào Clipboard", Toast.LENGTH_SHORT).show()
+                                },
                                 colors = ButtonDefaults.buttonColors(containerColor = AmberPin),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.weight(1f).height(34.dp).testTag("app_paste_next_button")
                             ) {
                                 Text(
-                                    text = "⚡ Dán NEXT vào ô thử",
+                                    text = "⚡ Nạp NEXT vào Clipboard",
                                     color = Slate950,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
