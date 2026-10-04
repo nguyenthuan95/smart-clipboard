@@ -22,6 +22,9 @@ interface QueueDao {
     @Query("SELECT * FROM queue_items ORDER BY position ASC LIMIT 1")
     suspend fun getNext(): QueueItem?
 
+    @Query("SELECT * FROM queue_items ORDER BY position DESC LIMIT 1")
+    suspend fun getLast(): QueueItem?
+
     @Query("SELECT MAX(position) FROM queue_items")
     suspend fun getMaxPosition(): Long?
 

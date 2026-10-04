@@ -238,6 +238,12 @@ class ClipboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun deleteQueueItem(id: Long) {
+        viewModelScope.launch {
+            queueRepository.deleteItem(id)
+        }
+    }
+
     // Settings actions
     fun setHistoryEnabled(enabled: Boolean) = preferences.setHistoryEnabled(enabled)
     fun setVibrateOnPaste(enabled: Boolean) = preferences.setVibrateOnPaste(enabled)

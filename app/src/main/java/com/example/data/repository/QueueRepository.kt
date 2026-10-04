@@ -45,9 +45,14 @@ class QueueRepository(
         if (trimmed.isEmpty()) return -1L
 
         return pasteMutex.withLock {
+            // Do not re-enqueue if the last item in queue has identical text
+            val lastItem = dao.getLast()
+            if (lastItem != null && lastItem.text == trimmed) {
+                return@withLock lastItem.id
+            }
+
             val count = dao.getCount()
             if (count >= MAX_QUEUE_SIZE) {
-                notifyQueueFull()
                 return@withLock -1L
             }
 
@@ -104,6 +109,15 @@ class QueueRepository(
                 syncSystemClipboardWithNextLocked()
             }
             dao.getNext()
+        }
+    }
+
+    suspend fun deleteItem(id: Long) {
+        pasteMutex.withLock {
+            dao.deleteById(id)
+            if (preferences.queueModeEnabled.value) {
+                syncSystemClipboardWithNextLocked()
+            }
         }
     }
 

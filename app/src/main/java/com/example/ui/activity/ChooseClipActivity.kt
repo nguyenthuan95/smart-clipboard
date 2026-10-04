@@ -23,11 +23,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -37,21 +37,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.SmartClipboardApp
-import com.example.data.model.ClipboardItem
+import com.example.data.model.QueueItem
 import com.example.ui.theme.AmberPin
 import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.Slate300
 import com.example.ui.theme.Slate400
 import com.example.ui.theme.Slate800
 import com.example.ui.theme.Slate900
 import com.example.ui.theme.Slate950
 import com.example.ui.theme.SmartClipboardTheme
+import kotlinx.coroutines.runBlocking
 
 class ChooseClipActivity : ComponentActivity() {
 
@@ -59,12 +60,12 @@ class ChooseClipActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val isReadOnly = intent.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false)
-        val repo = SmartClipboardApp.instance.repository
+        val queueRepo = SmartClipboardApp.instance.queueRepository
 
         setContent {
             SmartClipboardTheme(darkTheme = true) {
-                val pinnedItems by repo.getPinnedItemsFlow().collectAsState(initial = emptyList())
-                val recentItems by repo.getRecentItemsFlow().collectAsState(initial = emptyList())
+                val queueItems by queueRepo.queueItemsFlow.collectAsState(initial = emptyList())
+                val nextItem by queueRepo.nextItemFlow.collectAsState(initial = null)
 
                 Box(
                     modifier = Modifier
@@ -80,7 +81,7 @@ class ChooseClipActivity : ComponentActivity() {
                             .clickable(enabled = false) {},
                         shape = RoundedCornerShape(16.dp),
                         color = Slate950,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CyanAccent.copy(alpha = 0.4f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, AmberPin.copy(alpha = 0.4f))
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {
                             // Header
@@ -92,12 +93,21 @@ class ChooseClipActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "📋 Chọn để chèn văn bản",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.FormatListNumbered,
+                                        contentDescription = null,
+                                        tint = AmberPin,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "⚡ Hàng Đợi FIFO (${queueItems.size})",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
                                 IconButton(
                                     onClick = { finish() },
                                     modifier = Modifier.size(28.dp)
@@ -112,51 +122,32 @@ class ChooseClipActivity : ComponentActivity() {
                             }
 
                             // Items List
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f),
-                                contentPadding = PaddingValues(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                if (pinnedItems.isNotEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "Đã ghim",
-                                            color = AmberPin,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp,
-                                            modifier = Modifier.padding(vertical = 4.dp)
-                                        )
-                                    }
-                                    items(pinnedItems, key = { "pinned_${it.id}" }) { item ->
-                                        ClipItemRow(item = item, onSelect = { selectText(item.text, isReadOnly) })
-                                    }
+                            if (queueItems.isEmpty()) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Hàng đợi đang trống", color = Slate400, fontSize = 14.sp)
                                 }
-
-                                if (recentItems.isNotEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "Gần đây",
-                                            color = Slate400,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp,
-                                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f),
+                                    contentPadding = PaddingValues(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    itemsIndexed(queueItems, key = { _, item -> item.id }) { index, item ->
+                                        val isNext = item.id == nextItem?.id
+                                        QueueSelectRow(
+                                            item = item,
+                                            index = index + 1,
+                                            isNext = isNext,
+                                            onSelect = {
+                                                runBlocking { queueRepo.deleteItem(item.id) }
+                                                selectText(item.text, isReadOnly)
+                                            }
                                         )
-                                    }
-                                    items(recentItems, key = { "recent_${it.id}" }) { item ->
-                                        ClipItemRow(item = item, onSelect = { selectText(item.text, isReadOnly) })
-                                    }
-                                }
-
-                                if (pinnedItems.isEmpty() && recentItems.isEmpty()) {
-                                    item {
-                                        Box(
-                                            modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text("Chưa có lịch sử clipboard", color = Slate400, fontSize = 13.sp)
-                                        }
                                     }
                                 }
                             }
@@ -182,10 +173,19 @@ class ChooseClipActivity : ComponentActivity() {
 }
 
 @Composable
-private fun ClipItemRow(item: ClipboardItem, onSelect: () -> Unit) {
+private fun QueueSelectRow(
+    item: QueueItem,
+    index: Int,
+    isNext: Boolean,
+    onSelect: () -> Unit
+) {
     Surface(
-        color = Slate900,
+        color = if (isNext) Slate900 else Slate950,
         shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isNext) AmberPin else Slate800
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSelect() }
@@ -194,18 +194,37 @@ private fun ClipItemRow(item: ClipboardItem, onSelect: () -> Unit) {
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (item.pinned) {
-                Icon(
-                    imageVector = Icons.Default.PushPin,
-                    contentDescription = null,
-                    tint = AmberPin,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
+            if (isNext) {
+                Surface(
+                    color = AmberPin,
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = "NEXT",
+                        color = Slate950,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
+            } else {
+                Surface(
+                    color = Slate800,
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = "#$index",
+                        color = Slate300,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
             }
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = item.text,
-                color = Color.White,
+                color = if (isNext) Color.White else Slate300,
                 fontSize = 13.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

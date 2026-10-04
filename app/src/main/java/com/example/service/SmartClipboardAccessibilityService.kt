@@ -46,12 +46,7 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // When user copies in another app, an accessibility event or clipboard change occurs.
-        // As an active accessibility service, we have permission to sync system clipboard!
-        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-        serviceScope.launch {
-            SmartClipboardApp.instance.capturePrimaryClip(cm)
-        }
+        // Handled via OnPrimaryClipChangedListener, no action needed on raw events
     }
 
     override fun onInterrupt() {

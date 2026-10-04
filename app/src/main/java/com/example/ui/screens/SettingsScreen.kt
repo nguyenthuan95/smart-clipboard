@@ -181,35 +181,6 @@ fun SettingsScreen(
             }
         }
 
-        // ==========================================
-        // SECTION 2: CÀI ĐẶT CLIPBOARD
-        // ==========================================
-        Text(
-            text = "CÀI ĐẶT BỘ NHỚ TẠM",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = CyanAccent,
-            letterSpacing = 1.sp
-        )
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Slate900),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                SettingSwitchRow(
-                    icon = Icons.Default.History,
-                    iconTint = CyanAccent,
-                    title = "Lưu lịch sử Clipboard",
-                    description = "Tự động ghi nhớ các văn bản bạn sao chép",
-                    checked = historyEnabled,
-                    onCheckedChange = { viewModel.setHistoryEnabled(it) },
-                    testTag = "setting_history_switch"
-                )
-            }
-        }
-
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
@@ -249,63 +220,5 @@ private fun FeatureGuideRow(step: String, title: String, desc: String) {
                 lineHeight = 17.sp
             )
         }
-    }
-}
-
-@Composable
-private fun SettingSwitchRow(
-    icon: ImageVector,
-    iconTint: Color,
-    title: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    testTag: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(Slate800, RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = description,
-                fontSize = 12.sp,
-                color = Slate400,
-                lineHeight = 16.sp
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Slate950,
-                checkedTrackColor = iconTint,
-                uncheckedThumbColor = Slate400,
-                uncheckedTrackColor = Slate800
-            ),
-            modifier = Modifier.testTag(testTag)
-        )
     }
 }
