@@ -26,6 +26,9 @@ class QueueRepository(
     var lastSuppressedClipText: String? = null
         private set
 
+    @Volatile
+    private var suppressedAt = 0L
+
     val queueItemsFlow: Flow<List<QueueItem>> = dao.getAllFlow()
     val nextItemFlow: Flow<QueueItem?> = dao.getNextFlow()
 
@@ -174,30 +177,43 @@ class QueueRepository(
     }
 
     private suspend fun syncSystemClipboardWithNextLocked() {
-        val next = dao.getNext() ?: return
-        try {
-            val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-            lastSuppressedClipText = next.text
-            val clip = ClipData.newPlainText("Smart Clipboard Queue", next.text)
-            clipboardManager.setPrimaryClip(clip)
-            DebugLog.d("CLIPBOARD-SYNC", "System clipboard set to NEXT: '${next.text}'")
-        } catch (e: Exception) {
-            DebugLog.e("CLIPBOARD-SYNC-ERR", "Failed to sync NEXT to system clipboard", e)
+        val next = dao.getNext()
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+        if (next != null) {
+            try {
+                lastSuppressedClipText = next.text
+                suppressedAt = System.currentTimeMillis()
+                val clip = ClipData.newPlainText("Smart Clipboard Queue", next.text)
+                cm.setPrimaryClip(clip)
+                DebugLog.d("CLIPBOARD-SYNC", "System clipboard set to NEXT: '${next.text}'")
+            } catch (e: Exception) {
+                DebugLog.e("CLIPBOARD-SYNC-ERR", "Failed to sync NEXT to system clipboard", e)
+            }
+        } else {
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    cm.clearPrimaryClip()
+                    DebugLog.d("CLIPBOARD-CLEAR", "Queue empty, clipboard cleared")
+                }
+            } catch (e: Exception) {
+                DebugLog.e("CLIPBOARD-CLEAR-ERR", "Failed to clear clipboard", e)
+            }
         }
     }
 
     fun isSuppressedClip(text: String?): Boolean {
-        if (text == null) return false
-        val suppressed = lastSuppressedClipText
-        return suppressed != null && suppressed == text
+        val s = lastSuppressedClipText ?: return false
+        return s == text && (System.currentTimeMillis() - suppressedAt < 1500L)
     }
 
     fun markSuppressed(text: String) {
         lastSuppressedClipText = text
+        suppressedAt = System.currentTimeMillis()
     }
 
     fun clearSuppressedClip() {
         lastSuppressedClipText = null
+        suppressedAt = 0L
     }
 
     companion object {

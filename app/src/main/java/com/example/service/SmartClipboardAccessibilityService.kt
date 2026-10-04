@@ -11,6 +11,7 @@ import com.example.util.DebugLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -111,6 +112,14 @@ class SmartClipboardAccessibilityService : AccessibilityService() {
                     event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED ||
                     event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED)) {
             checkClipboardCopy(cm, source = "Event_${event.eventType}")
+            if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+                serviceScope.launch {
+                    delay(150)
+                    withContext(Dispatchers.Main) { checkClipboardCopy(cm, "Retry150") }
+                    delay(350)
+                    withContext(Dispatchers.Main) { checkClipboardCopy(cm, "Retry500") }
+                }
+            }
         }
     }
 
